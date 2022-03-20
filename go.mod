@@ -1,4 +1,4 @@
-module github.com/goradd/collection
+module github.com/goradd/maps
 
 go 1.18
 
