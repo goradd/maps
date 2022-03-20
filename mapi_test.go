@@ -46,7 +46,7 @@ func testClear[M any](t *testing.T) {
 		t.Run("Clear "+tt.name, func(t *testing.T) {
 			tt.m.Clear()
 			if tt.m.Len() != 0 {
-				t.Errorf("StdMap not cleared: %q", tt.m)
+				t.Errorf("MapI not cleared: %q", tt.m)
 			}
 		})
 	}
@@ -207,7 +207,8 @@ func testBinaryMarshal[M any](t *testing.T) {
 func testMarshalJSON[M any](t *testing.T) {
 	t.Run("MarshalJSON", func(t *testing.T) {
 		m := makeMapi[M](mapT{"a": 1, "b": 2, "c": 3})
-		s, _ := json.Marshal(m)
+		s, err := json.Marshal(m)
+		assert.NoError(t, err)
 		// Note: The below output is what is produced, but isn't guaranteed. go seems to currently be sorting keys
 		assert.Equal(t, `{"a":1,"b":2,"c":3}`, string(s))
 	})

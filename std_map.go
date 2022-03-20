@@ -1,6 +1,9 @@
 package maps
 
 import (
+	"bytes"
+	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"strings"
 )
@@ -101,6 +104,11 @@ func (m StdMap[K, V]) Set(k K, v V) {
 	m[k] = v
 }
 
+// Delete removes the key from the map. If the key does not exist, nothing happens.
+func (m StdMap[K, V]) Delete(k K) {
+	delete(m, k)
+}
+
 func (m StdMap[K, V]) Keys() []K {
 	keys := make([]K, m.Len())
 
@@ -146,4 +154,44 @@ func (m StdMap[K, V]) String() string {
 	s := fmt.Sprintf("%#v", m)
 	loc := strings.IndexRune(s, '{')
 	return s[loc:]
+}
+
+// MarshalBinary implements the BinaryMarshaler interface to convert the map to a byte stream.
+func (m StdMap[K, V]) MarshalBinary() ([]byte, error) {
+	var b bytes.Buffer
+
+	enc := gob.NewEncoder(&b)
+	err := enc.Encode(map[K]V(m))
+	return b.Bytes(), err
+}
+
+// UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a Map.
+//
+// Note that you will likely need to register the unmarshaller at init time with gob like this:
+//    func init() {
+//      gob.Register(new(Map[K,V]))
+//    }
+func (m *StdMap[K, V]) UnmarshalBinary(data []byte) (err error) {
+	b := bytes.NewBuffer(data)
+	dec := gob.NewDecoder(b)
+	var v map[K]V
+	err = dec.Decode(&v)
+	*m = v
+	return
+}
+
+// MarshalJSON implements the json.Marshaler interface to convert the map into a JSON object.
+func (m StdMap[K, V]) MarshalJSON() (out []byte, err error) {
+	v := map[K]V(m)
+	return json.Marshal(v)
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface to convert a json object to a Map.
+// The JSON must start with an object.
+func (m *StdMap[K, V]) UnmarshalJSON(in []byte) (err error) {
+	var v map[K]V
+
+	err = json.Unmarshal(in, &v)
+	*m = v
+	return
 }

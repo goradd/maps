@@ -1,11 +1,5 @@
 package maps
 
-import (
-	"bytes"
-	"encoding/gob"
-	"encoding/json"
-)
-
 // Map is a go map that uses a standard set of functions shared with other Map-like types.
 //
 // The recommended way to create a Map is to first declare a concrete type alias, and then call
@@ -19,8 +13,8 @@ type Map[K comparable, V any] struct {
 	items StdMap[K, V]
 }
 
-func (m Map[K, V]) Clear() {
-	m.items.Clear()
+func (m *Map[K, V]) Clear() {
+	m.items = nil
 }
 
 func (m Map[K, V]) Len() int {
@@ -41,6 +35,10 @@ func (m Map[K, V]) Get(k K) V {
 
 func (m Map[K, V]) Has(k K) bool {
 	return m.items.Has(k)
+}
+
+func (m Map[K, V]) Delete(k K) {
+	m.Delete(k)
 }
 
 func (m Map[K, V]) Keys() []K {
@@ -76,11 +74,7 @@ func (m Map[K, V]) Equal(m2 MapI[K, V]) bool {
 
 // MarshalBinary implements the BinaryMarshaler interface to convert the map to a byte stream.
 func (m Map[K, V]) MarshalBinary() ([]byte, error) {
-	var b bytes.Buffer
-
-	enc := gob.NewEncoder(&b)
-	err := enc.Encode(map[K]V(m.items))
-	return b.Bytes(), err
+	return m.items.MarshalBinary()
 }
 
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a Map.
@@ -90,30 +84,18 @@ func (m Map[K, V]) MarshalBinary() ([]byte, error) {
 //      gob.Register(new(Map[K,V]))
 //    }
 func (m *Map[K, V]) UnmarshalBinary(data []byte) (err error) {
-	var v map[K]V
-
-	b := bytes.NewBuffer(data)
-	dec := gob.NewDecoder(b)
-	if err = dec.Decode(&v); err == nil {
-		m.items = Cast(v)
-	}
-	return
+	return m.items.UnmarshalBinary(data)
 }
 
 // MarshalJSON implements the json.Marshaler interface to convert the map into a JSON object.
 func (m Map[K, V]) MarshalJSON() (out []byte, err error) {
-	out, err = json.Marshal(map[K]V(m.items))
-	return
+	return m.items.MarshalJSON()
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface to convert a json object to a Map.
 // The JSON must start with an object.
 func (m *Map[K, V]) UnmarshalJSON(in []byte) (err error) {
-	var v map[K]V
-	if err = json.Unmarshal(in, &v); err == nil {
-		m.items = Cast(v)
-	}
-	return
+	return m.items.UnmarshalJSON(in)
 }
 
 func (m Map[K, V]) String() string {
