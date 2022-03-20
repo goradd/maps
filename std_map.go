@@ -1,0 +1,149 @@
+package maps
+
+import (
+	"fmt"
+	"strings"
+)
+
+// StdMap is a go map that uses a standard set of functions shared with other StdMap-like types.
+// It is a wrapper of a standard map.
+//
+// The zero value is NOT settable. Use NewStdMap to create a new StdMap object, or use standard
+// map instantiation syntax like this:
+//   m := StdMap[string, int]{"a":1}
+//
+// StdMap is mostly a convenience type for making a standard Go map into a MapI interface.
+// Generally, you should use Map instead, as it presents a consistent interface that allows you
+// to swap the underlying type without changing implemented code.
+type StdMap[K comparable, V any] map[K]V
+
+// NewStdMap creates a new map that maps values of type K to values of type V.
+// Pass in zero or more standard maps and the contents of those maps will be copied to the new StdMap.
+// You can also create a new StdMap like this:
+//  m := StdMap[string, int]{"a":1}
+func NewStdMap[K comparable, V any](sources ...map[K]V) StdMap[K, V] {
+	m := StdMap[K, V]{}
+	for _, i := range sources {
+		m.Merge(Cast(i))
+	}
+	return m
+}
+
+// Cast is a convenience method for casting a standard Go map to a StdMap type.
+// Note that this is a cast, so the return value is the equivalent map of what
+// was past in. Use this primarily to make a standard map into a MapI object.
+func Cast[M ~map[K]V, K comparable, V any](m M) StdMap[K, V] {
+	return StdMap[K, V](m)
+}
+
+// Clear resets the map to an empty map
+func (m StdMap[K, V]) Clear() {
+	for k := range m {
+		delete(m, k)
+	}
+}
+
+// Len returns the number of items in the map.
+func (m StdMap[K, V]) Len() int {
+	return len(m)
+}
+
+// Merge copies the items from in to the map, overwriting any conflicting keys.
+// Returns the map for chaining.
+func (m StdMap[K, V]) Merge(in MapI[K, V]) {
+	if m == nil {
+		panic("cannot merge into a nil map")
+	}
+	in.Range(func(k K, v V) bool {
+		m[k] = v
+		return true
+	})
+}
+
+// Range calls the given function for each key,value pair in the map.
+// This is the same interface as sync.StdMap.Range().
+// While its safe to call methods of the map from within the Range function, its discouraged.
+// If you ever switch to one of the SafeMap maps, it will cause a deadlock.
+func (m StdMap[K, V]) Range(f func(k K, v V) bool) {
+	for k, v := range m {
+		if !f(k, v) {
+			break
+		}
+	}
+}
+
+// Load returns the value based on its key, and a boolean indicating whether it exists in the map.
+// This is the same interface as sync.StdMap.Load()
+func (m StdMap[K, V]) Load(k K) (v V, ok bool) {
+	if m == nil {
+		return
+	}
+	v, ok = m[k]
+	return
+}
+
+func (m StdMap[K, V]) Get(k K) (v V) {
+	v, _ = m.Load(k)
+	return
+}
+
+func (m StdMap[K, V]) Has(k K) (exists bool) {
+	_, exists = m.Load(k)
+	return
+}
+
+// Set sets the given key to the given value.
+// It returns the map for chaining of Set calls.
+func (m StdMap[K, V]) Set(k K, v V) {
+	if m == nil {
+		panic("cannot call Set() on a nil map")
+	}
+	m[k] = v
+}
+
+func (m StdMap[K, V]) Keys() []K {
+	keys := make([]K, m.Len())
+
+	var i int
+	for k := range m {
+		keys[i] = k
+		i++
+	}
+	return keys
+}
+
+func (m StdMap[K, V]) Values() []V {
+	values := make([]V, m.Len())
+
+	var i int
+	for _, v := range m {
+		values[i] = v
+		i++
+	}
+	return values
+}
+
+// Equal returns true if all the keys and values are equal.
+//
+// You will get a runtime panic if your values are not comparable, or your values do
+// not satisfy the Equaler interface.
+func (m StdMap[K, V]) Equal(m2 MapI[K, V]) bool {
+	if m.Len() != m2.Len() {
+		return false
+	}
+	ret := true
+	m2.Range(func(k K, v V) bool {
+		if v2, ok := m[k]; !ok || !equalValues(v, v2) {
+			ret = false
+			return false
+		}
+		return true
+	})
+	return ret
+}
+
+func (m StdMap[K, V]) String() string {
+	s := fmt.Sprintf("%#v", m)
+	loc := strings.IndexRune(s, '{')
+	return s[loc:]
+}
