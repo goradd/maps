@@ -5,13 +5,13 @@ import (
 )
 
 // SafeMap maps a string to a interface{}.
-// This version is  safe for concurrent use.
+// This version is safe for concurrent use.
 type SafeMap[K comparable, V any] struct {
 	sync.RWMutex
 	items StdMap[K, V]
 }
 
-// Clear resets the map to an empty map
+// Clear resets the map to an empty map.
 func (m *SafeMap[K, V]) Clear() {
 	if m.items == nil {
 		return
@@ -21,7 +21,7 @@ func (m *SafeMap[K, V]) Clear() {
 	m.Unlock()
 }
 
-// Set sets the key to the given value
+// Set sets the key to the given value.
 func (m *SafeMap[K, V]) Set(k K, v V) {
 	m.Lock()
 	if m.items == nil {
@@ -45,7 +45,7 @@ func (m *SafeMap[K, V]) Has(k K) (exists bool) {
 }
 
 // Load returns the value based on its key, and a boolean indicating whether it exists in the map.
-// This is the same interface as sync.StdMap.Load()
+// This is the same interface as sync.Map.Load().
 func (m *SafeMap[K, V]) Load(k K) (v V, ok bool) {
 	if m.items == nil {
 		return
@@ -102,7 +102,8 @@ func (m *SafeMap[K, V]) Len() (l int) {
 
 // Range will call the given function with every key and value in the map.
 // If f returns false, it stops the iteration. This pattern is taken from sync.Map.
-// During this process, the map will be locked, so do not pass a function that will take significant amounts of time.
+// During this process, the map will be locked, so do not pass a function that will take
+// significant amounts of time, nor will call into other methods of the SafeMap which might also need a lock.
 func (m *SafeMap[K, V]) Range(f func(k K, v V) bool) {
 	if m.items == nil {
 		return
@@ -137,7 +138,7 @@ func (m *SafeMap[K, V]) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a
-// SafeMap
+// SafeMap.
 func (m *SafeMap[K, V]) UnmarshalBinary(data []byte) (err error) {
 	m.Lock()
 	defer m.Unlock()
@@ -159,6 +160,7 @@ func (m *SafeMap[K, V]) UnmarshalJSON(in []byte) (err error) {
 	return m.items.UnmarshalJSON(in)
 }
 
+// String outputs the map as a string.
 func (m *SafeMap[K, V]) String() string {
 	m.RLock()
 	defer m.RUnlock()

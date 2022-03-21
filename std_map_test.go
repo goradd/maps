@@ -199,3 +199,35 @@ func TestStdMap_Equal(t *testing.T) {
 		})
 	}
 }
+
+type mySlice []int
+
+func (s mySlice) Equal(b any) bool {
+	if s2, ok := b.(mySlice); ok {
+		if len(s) == len(s2) {
+			for i, v := range s2 {
+				if s[i] != v {
+					return false
+				}
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func TestEqualValues(t *testing.T) {
+	a := 1
+	b := 1
+	assert.True(t, equalValues(a, b))
+	b = 2
+	assert.False(t, equalValues(a, b))
+
+	c := mySlice{1, 2}
+	d := mySlice{1, 2}
+	assert.True(t, equalValues(c, d))
+
+	e := []float32{1, 2}
+	f := []float32{1, 2}
+	assert.Panics(t, func() { equalValues(e, f) })
+}

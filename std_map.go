@@ -8,8 +8,7 @@ import (
 	"strings"
 )
 
-// StdMap is a go map that uses a standard set of functions shared with other StdMap-like types.
-// It is a wrapper of a standard map.
+// StdMap wraps a standard go map with a standard set of functions shared with other MapI-like types.
 //
 // The zero value is NOT settable. Use NewStdMap to create a new StdMap object, or use standard
 // map instantiation syntax like this:
@@ -23,7 +22,7 @@ type StdMap[K comparable, V any] map[K]V
 // NewStdMap creates a new map that maps values of type K to values of type V.
 // Pass in zero or more standard maps and the contents of those maps will be copied to the new StdMap.
 // You can also create a new StdMap like this:
-//  m := StdMap[string, int]{"a":1}
+//   m := StdMap[string, int]{"a":1}
 func NewStdMap[K comparable, V any](sources ...map[K]V) StdMap[K, V] {
 	m := StdMap[K, V]{}
 	for _, i := range sources {
@@ -52,7 +51,6 @@ func (m StdMap[K, V]) Len() int {
 }
 
 // Merge copies the items from in to the map, overwriting any conflicting keys.
-// Returns the map for chaining.
 func (m StdMap[K, V]) Merge(in MapI[K, V]) {
 	if m == nil {
 		panic("cannot merge into a nil map")
@@ -64,7 +62,7 @@ func (m StdMap[K, V]) Merge(in MapI[K, V]) {
 }
 
 // Range calls the given function for each key,value pair in the map.
-// This is the same interface as sync.StdMap.Range().
+// This is the same interface as sync.Map.Range().
 // While its safe to call methods of the map from within the Range function, its discouraged.
 // If you ever switch to one of the SafeMap maps, it will cause a deadlock.
 func (m StdMap[K, V]) Range(f func(k K, v V) bool) {
@@ -76,7 +74,7 @@ func (m StdMap[K, V]) Range(f func(k K, v V) bool) {
 }
 
 // Load returns the value based on its key, and a boolean indicating whether it exists in the map.
-// This is the same interface as sync.StdMap.Load()
+// This is the same interface as sync.Map.Load()
 func (m StdMap[K, V]) Load(k K) (v V, ok bool) {
 	if m == nil {
 		return
@@ -85,18 +83,19 @@ func (m StdMap[K, V]) Load(k K) (v V, ok bool) {
 	return
 }
 
+// Get returns the value for the given key. If the key does not exist, the zero value will be returned.
 func (m StdMap[K, V]) Get(k K) (v V) {
 	v, _ = m.Load(k)
 	return
 }
 
+// Has returns true if the key exists.
 func (m StdMap[K, V]) Has(k K) (exists bool) {
 	_, exists = m.Load(k)
 	return
 }
 
 // Set sets the given key to the given value.
-// It returns the map for chaining of Set calls.
 func (m StdMap[K, V]) Set(k K, v V) {
 	if m == nil {
 		panic("cannot call Set() on a nil map")
@@ -109,6 +108,7 @@ func (m StdMap[K, V]) Delete(k K) {
 	delete(m, k)
 }
 
+// Keys returns a new slice containing the keys of the map.
 func (m StdMap[K, V]) Keys() (keys []K) {
 	if m.Len() == 0 {
 		return
@@ -124,6 +124,7 @@ func (m StdMap[K, V]) Keys() (keys []K) {
 	return keys
 }
 
+// Values returns a new slice containing the values of the map.
 func (m StdMap[K, V]) Values() (values []V) {
 	if m.Len() == 0 {
 		return
@@ -139,8 +140,8 @@ func (m StdMap[K, V]) Values() (values []V) {
 
 // Equal returns true if all the keys and values are equal.
 //
-// You will get a runtime panic if your values are not comparable, or your values do
-// not satisfy the Equaler interface.
+// If the values are not comparable, you should implement the Equaler interface on the values.
+// Otherwise you will get a runtime panic.
 func (m StdMap[K, V]) Equal(m2 MapI[K, V]) bool {
 	if m.Len() != m2.Len() {
 		return false
@@ -156,6 +157,7 @@ func (m StdMap[K, V]) Equal(m2 MapI[K, V]) bool {
 	return ret
 }
 
+// String returns a string representation of the map.
 func (m StdMap[K, V]) String() string {
 	s := fmt.Sprintf("%#v", m)
 	loc := strings.IndexRune(s, '{')
@@ -192,7 +194,7 @@ func (m StdMap[K, V]) MarshalJSON() (out []byte, err error) {
 	return json.Marshal(v)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface to convert a json object to a Map.
+// UnmarshalJSON implements the json.Unmarshaler interface to convert a json object to a StdMap.
 // The JSON must start with an object.
 func (m *StdMap[K, V]) UnmarshalJSON(in []byte) (err error) {
 	var v map[K]V
