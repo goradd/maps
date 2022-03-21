@@ -1,6 +1,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/goradd/maps.svg)](https://pkg.go.dev/github.com/goradd/maps)
 ![Build Status](https://img.shields.io/github/workflow/status/goradd/maps/Go)
 [![Go Report Card](https://goreportcard.com/badge/github.com/goradd/maps)](https://goreportcard.com/report/github.com/goradd/maps)
+[![codecov](https://codecov.io/gh/goradd/maps/branch/main/graph/badge.svg?token=LZNNI26H3L)](https://codecov.io/gh/goradd/maps)
 
 # maps
 maps is a library using Go generics that offers a standard interface for manipulating 
