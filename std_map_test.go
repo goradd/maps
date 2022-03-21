@@ -138,7 +138,7 @@ func TestMap_Range(t *testing.T) {
 	}
 }
 
-func ExampleCastMap() {
+func ExampleCast() {
 	m := map[string]int{"a": 1}
 	b := Cast(m)
 	fmt.Print(b.Len())
