@@ -163,6 +163,10 @@ func TestStdMap_Keys(t *testing.T) {
 	keys := m.Keys()
 	assert.Len(t, keys, 3)
 	assert.Contains(t, keys, "c")
+
+	m = NewStdMap(mapT{})
+	assert.Nil(t, m.Keys())
+
 }
 
 func TestStdMap_Values(t *testing.T) {
@@ -170,6 +174,9 @@ func TestStdMap_Values(t *testing.T) {
 	values := m.Values()
 	assert.Len(t, values, 3)
 	assert.Contains(t, values, 3)
+
+	m = NewStdMap(mapT{})
+	assert.Nil(t, m.Values())
 }
 
 func TestStdMap_Equal(t *testing.T) {

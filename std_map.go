@@ -109,8 +109,12 @@ func (m StdMap[K, V]) Delete(k K) {
 	delete(m, k)
 }
 
-func (m StdMap[K, V]) Keys() []K {
-	keys := make([]K, m.Len())
+func (m StdMap[K, V]) Keys() (keys []K) {
+	if m.Len() == 0 {
+		return
+	}
+
+	keys = make([]K, m.Len())
 
 	var i int
 	for k := range m {
@@ -120,9 +124,11 @@ func (m StdMap[K, V]) Keys() []K {
 	return keys
 }
 
-func (m StdMap[K, V]) Values() []V {
-	values := make([]V, m.Len())
-
+func (m StdMap[K, V]) Values() (values []V) {
+	if m.Len() == 0 {
+		return
+	}
+	values = make([]V, m.Len())
 	var i int
 	for _, v := range m {
 		values[i] = v

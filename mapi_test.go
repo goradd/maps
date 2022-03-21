@@ -8,6 +8,8 @@ import (
 	"testing"
 )
 
+type makeF func(sources ...mapT) MapI[string, int]
+
 func makeMapi[M any](sources ...mapT) MapI[string, int] {
 	var m any
 	m = new(M)
@@ -18,28 +20,30 @@ func makeMapi[M any](sources ...mapT) MapI[string, int] {
 	return i
 }
 
-func runMapiTests[M any](t *testing.T) {
-	testClear[M](t)
-	testMerge[M](t)
-	testGetHasLoad[M](t)
-	testRange[M](t)
-	testSet[M](t)
-	testKeys[M](t)
-	testValues[M](t)
-	testEqual[M](t)
-	testBinaryMarshal[M](t)
-	testMarshalJSON[M](t)
-	testUnmarshalJSON[M](t)
+func runMapiTests[M any](t *testing.T, f makeF) {
+	testClear(t, f)
+	testLen(t, f)
+	testMerge(t, f)
+	testGetHasLoad(t, f)
+	testRange(t, f)
+	testSet(t, f)
+	testKeys(t, f)
+	testValues(t, f)
+	testEqual(t, f)
+	testBinaryMarshal[M](t, f)
+	testMarshalJSON(t, f)
+	testUnmarshalJSON[M](t, f)
+	testDelete(t, f)
 }
 
-func testClear[M any](t *testing.T) {
+func testClear(t *testing.T, f makeF) {
 	tests := []struct {
 		name string
 		m    mapTI
 	}{
-		{"empty", makeMapi[M]()},
-		{"1 item", makeMapi[M](mapT{"a": 1})},
-		{"2 items", makeMapi[M](mapT{"a": 1, "b": 2})},
+		{"empty", f()},
+		{"1 item", f(mapT{"a": 1})},
+		{"2 items", f(mapT{"a": 1, "b": 2})},
 	}
 
 	for _, tt := range tests {
@@ -52,18 +56,24 @@ func testClear[M any](t *testing.T) {
 	}
 }
 
-func testMerge[M any](t *testing.T) {
+func testLen(t *testing.T, f makeF) {
+	assert.Equal(t, 0, f().Len())
+	assert.Equal(t, 2, f(mapT{"a": 1, "b": 2}).Len())
+}
+
+func testMerge(t *testing.T, f makeF) {
 	tests := []struct {
 		name     string
 		m1       mapTI
 		m2       mapT
 		expected mapT
 	}{
-		{"1 to 1", makeMapi[M](mapT{"a": 1}), mapT{"b": 2}, mapT{"a": 1, "b": 2}},
-		{"overwrite", makeMapi[M](mapT{"a": 1}), mapT{"a": 1, "b": 2}, mapT{"a": 1, "b": 2}},
-		{"to empty", makeMapi[M](), mapT{"a": 1, "b": 2}, mapT{"a": 1, "b": 2}},
-		{"from empty", makeMapi[M](mapT{"a": 1}), mapT{}, mapT{"a": 1}},
-		{"from cast map", makeMapi[M](mapT{"a": 1}), Cast(map[string]int{"b": 2}), mapT{"a": 1, "b": 2}},
+		{"1 to 1", f(mapT{"a": 1}), mapT{"b": 2}, mapT{"a": 1, "b": 2}},
+		{"overwrite", f(mapT{"a": 1}), mapT{"a": 1, "b": 2}, mapT{"a": 1, "b": 2}},
+		{"to empty", f(), mapT{"a": 1, "b": 2}, mapT{"a": 1, "b": 2}},
+		{"from nil", f(mapT{"a": 1}), nil, mapT{"a": 1}},
+		{"from empty", f(mapT{"a": 1}), mapT{}, mapT{"a": 1}},
+		{"from cast map", f(mapT{"a": 1}), Cast(map[string]int{"b": 2}), mapT{"a": 1, "b": 2}},
 	}
 	for _, tt := range tests {
 		t.Run("Merge "+tt.name, func(t *testing.T) {
@@ -75,9 +85,9 @@ func testMerge[M any](t *testing.T) {
 	}
 }
 
-func testGetHasLoad[M any](t *testing.T) {
+func testGetHasLoad(t *testing.T, f makeF) {
 
-	m := makeMapi[M](mapT{"a": 1, "b": 2})
+	m := f(mapT{"a": 1, "b": 2})
 
 	t.Run("Has", func(t *testing.T) {
 		if m.Has("c") {
@@ -108,15 +118,16 @@ func testGetHasLoad[M any](t *testing.T) {
 	})
 }
 
-func testRange[M any](t *testing.T) {
+func testRange(t *testing.T, f makeF) {
 	tests := []struct {
 		name     string
 		m        mapTI
 		expected int
 	}{
-		{"1", makeMapi[M](mapT{"a": 1}), 1},
-		{"2", makeMapi[M](mapT{"a": 1, "b": 2}), 2},
-		{"3", makeMapi[M](mapT{"a": 1, "b": 2, "c": 3}), 2},
+		{"0", f(), 0},
+		{"1", f(mapT{"a": 1}), 1},
+		{"2", f(mapT{"a": 1, "b": 2}), 2},
+		{"3", f(mapT{"a": 1, "b": 2, "c": 3}), 2},
 	}
 	for _, tt := range tests {
 		t.Run("Range "+tt.name, func(t *testing.T) {
@@ -135,46 +146,46 @@ func testRange[M any](t *testing.T) {
 	}
 }
 
-func testSet[M any](t *testing.T) {
+func testSet(t *testing.T, f makeF) {
 	t.Run("Set", func(t *testing.T) {
-		a := makeMapi[M]()
+		a := f()
 		a.Set("a", 1)
 		a.Set("b", 2)
 		assert.Equal(t, 2, a.Get("b"))
 	})
 }
 
-func testKeys[M any](t *testing.T) {
+func testKeys(t *testing.T, f makeF) {
 	t.Run("Keys", func(t *testing.T) {
-		m := makeMapi[M](mapT{"a": 1, "b": 2, "c": 3})
+		m := f(mapT{"a": 1, "b": 2, "c": 3})
 		keys := m.Keys()
 		assert.Len(t, keys, 3)
 		assert.Contains(t, keys, "c")
 	})
 }
 
-func testValues[M any](t *testing.T) {
+func testValues(t *testing.T, f makeF) {
 	t.Run("Values", func(t *testing.T) {
-		m := makeMapi[M](mapT{"a": 1, "b": 2, "c": 3})
+		m := f(mapT{"a": 1, "b": 2, "c": 3})
 		values := m.Values()
 		assert.Len(t, values, 3)
 		assert.Contains(t, values, 3)
 	})
 }
 
-func testEqual[M any](t *testing.T) {
+func testEqual(t *testing.T, f makeF) {
 	tests := []struct {
 		name string
 		m    mapTI
 		m2   mapT
 		want bool
 	}{
-		{"equal", makeMapi[M](mapT{"a": 1}), mapT{"a": 1}, true},
-		{"empty", makeMapi[M](), mapT{}, true},
-		{"dif len", makeMapi[M](mapT{"a": 1}), mapT{}, false},
-		{"dif len 1", makeMapi[M](mapT{"a": 1}), mapT{"a": 1, "b": 2}, false},
-		{"dif value", makeMapi[M](mapT{"a": 1}), mapT{"a": 2}, false},
-		{"dif key", makeMapi[M](mapT{"a": 1}), mapT{"b": 1}, false},
+		{"equal", f(mapT{"a": 1}), mapT{"a": 1}, true},
+		{"empty", f(), mapT{}, true},
+		{"dif len", f(mapT{"a": 1}), mapT{}, false},
+		{"dif len 1", f(mapT{"a": 1}), mapT{"a": 1, "b": 2}, false},
+		{"dif value", f(mapT{"a": 1}), mapT{"a": 2}, false},
+		{"dif key", f(mapT{"a": 1}), mapT{"b": 1}, false},
 	}
 	for _, tt := range tests {
 		t.Run("Equal "+tt.name, func(t *testing.T) {
@@ -183,10 +194,10 @@ func testEqual[M any](t *testing.T) {
 	}
 }
 
-func testBinaryMarshal[M any](t *testing.T) {
+func testBinaryMarshal[M any](t *testing.T, f makeF) {
 	t.Run("BinaryMarshal", func(t *testing.T) {
 		// You would rarely call MarshallBinary directly, but rather would use an encoder, like GOB for binary encoding
-		m := makeMapi[M](mapT{"a": 1, "b": 2, "c": 3})
+		m := f(mapT{"a": 1, "b": 2, "c": 3})
 		var m2 M
 		var buf bytes.Buffer
 		enc := gob.NewEncoder(&buf) // Will write
@@ -204,9 +215,9 @@ func testBinaryMarshal[M any](t *testing.T) {
 	})
 }
 
-func testMarshalJSON[M any](t *testing.T) {
+func testMarshalJSON(t *testing.T, f makeF) {
 	t.Run("MarshalJSON", func(t *testing.T) {
-		m := makeMapi[M](mapT{"a": 1, "b": 2, "c": 3})
+		m := f(mapT{"a": 1, "b": 2, "c": 3})
 		s, err := json.Marshal(m)
 		assert.NoError(t, err)
 		// Note: The below output is what is produced, but isn't guaranteed. go seems to currently be sorting keys
@@ -214,7 +225,7 @@ func testMarshalJSON[M any](t *testing.T) {
 	})
 }
 
-func testUnmarshalJSON[M any](t *testing.T) {
+func testUnmarshalJSON[M any](t *testing.T, f makeF) {
 	b := []byte(`{"a":1,"b":2,"c":3}`)
 	var m M
 
@@ -224,4 +235,19 @@ func testUnmarshalJSON[M any](t *testing.T) {
 	m2 := i.(MapI[string, int])
 
 	assert.Equal(t, 3, m2.Get("c"))
+}
+
+func testDelete(t *testing.T, f makeF) {
+	t.Run("Delete", func(t *testing.T) {
+		m := f(mapT{"a": 1, "b": 2})
+		m.Delete("a")
+
+		assert.False(t, m.Has("a"))
+		assert.True(t, m.Has("b"))
+
+		m.Delete("b")
+		assert.False(t, m.Has("b"))
+
+		m.Delete("b") // make sure deleting from an empty map is a no-op
+	})
 }

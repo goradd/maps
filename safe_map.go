@@ -6,7 +6,6 @@ import (
 
 // SafeMap maps a string to a interface{}.
 // This version is  safe for concurrent use.
-// A zero value is ready for use, but you may not copy it after first using it.
 type SafeMap[K comparable, V any] struct {
 	sync.RWMutex
 	items StdMap[K, V]
@@ -41,9 +40,6 @@ func (m *SafeMap[K, V]) Get(k K) (v V) {
 
 // Has returns true if the given key exists in the map.
 func (m *SafeMap[K, V]) Has(k K) (exists bool) {
-	if m == nil {
-		return
-	}
 	_, exists = m.Load(k)
 	return
 }
@@ -51,7 +47,7 @@ func (m *SafeMap[K, V]) Has(k K) (exists bool) {
 // Load returns the value based on its key, and a boolean indicating whether it exists in the map.
 // This is the same interface as sync.StdMap.Load()
 func (m *SafeMap[K, V]) Load(k K) (v V, ok bool) {
-	if m == nil {
+	if m.items == nil {
 		return
 	}
 	m.RLock()
@@ -64,18 +60,15 @@ func (m *SafeMap[K, V]) Load(k K) (v V, ok bool) {
 
 // Delete removes the key from the map. If the key does not exist, nothing happens.
 func (m *SafeMap[K, V]) Delete(k K) {
-	if m == nil {
-		return
-	}
 	m.Lock()
-	m.Delete(k)
+	m.items.Delete(k)
 	m.Unlock()
 }
 
 // Values returns a slice of the values. It will return a nil slice if the map is empty.
 // Multiple calls to Values will result in the same list of values, but may be in a different order.
 func (m *SafeMap[K, V]) Values() (v []V) {
-	if m == nil {
+	if m.items == nil {
 		return
 	}
 	m.RLock()
@@ -87,7 +80,7 @@ func (m *SafeMap[K, V]) Values() (v []V) {
 // Keys returns a slice of the keys. It will return a nil slice if the map is empty.
 // Multiple calls to Keys will result in the same list of keys, but may be in a different order.
 func (m *SafeMap[K, V]) Keys() (keys []K) {
-	if m == nil {
+	if m.items == nil {
 		return nil
 	}
 	m.RLock()
@@ -98,7 +91,7 @@ func (m *SafeMap[K, V]) Keys() (keys []K) {
 
 // Len returns the number of items in the map
 func (m *SafeMap[K, V]) Len() (l int) {
-	if m == nil {
+	if m.items == nil {
 		return
 	}
 	m.RLock()
@@ -111,7 +104,7 @@ func (m *SafeMap[K, V]) Len() (l int) {
 // If f returns false, it stops the iteration. This pattern is taken from sync.Map.
 // During this process, the map will be locked, so do not pass a function that will take significant amounts of time.
 func (m *SafeMap[K, V]) Range(f func(k K, v V) bool) {
-	if m == nil {
+	if m.items == nil {
 		return
 	}
 	m.RLock()
@@ -121,12 +114,6 @@ func (m *SafeMap[K, V]) Range(f func(k K, v V) bool) {
 
 // Merge merges the given  map with the current one. The given one takes precedent on collisions.
 func (m *SafeMap[K, V]) Merge(in MapI[K, V]) {
-	if in == nil {
-		return
-	}
-	if m == nil {
-		panic("cannot merge into a nil map")
-	}
 	if m.items == nil {
 		m.items = make(map[K]V, in.Len())
 	}

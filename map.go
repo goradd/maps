@@ -38,7 +38,7 @@ func (m Map[K, V]) Has(k K) bool {
 }
 
 func (m Map[K, V]) Delete(k K) {
-	m.Delete(k)
+	m.items.Delete(k)
 }
 
 func (m Map[K, V]) Keys() []K {

@@ -6,7 +6,7 @@ import (
 )
 
 func TestMap_Mapi(t *testing.T) {
-	runMapiTests[Map[string, int]](t)
+	runMapiTests[Map[string, int]](t, makeMapi[Map[string, int]])
 }
 
 func ExampleMap_String() {

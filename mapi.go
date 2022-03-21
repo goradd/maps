@@ -13,4 +13,5 @@ type MapI[K comparable, V any] interface {
 	Set(K, V)
 	Merge(MapI[K, V])
 	Equal(MapI[K, V]) bool
+	Delete(k K)
 }
