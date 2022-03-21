@@ -10,14 +10,22 @@ import (
 	"sync"
 )
 
-// A SafeSliceMap combines a map with a slice so that you can range over a
-// map in a predictable order. By default, the order will be the same order that items were inserted,
-// i.e. a FIFO list. This is similar to how PHP arrays work.
+// SafeSliceMap is a go map that uses a slice to save the order of its keys so that the map can
+// be ranged in a predictable order. SafeSliceMap is safe for concurrent use.
 //
-// SafeSliceMap implements the sort interface so you can change the order
-// before ranging over the values if desired.
-// It is safe for concurrent use.
-// The SafeSliceMap satisfies the MapI interface.
+// By default, the order will be the same order that items were inserted,
+// i.e. a FIFO list, which is similar to how PHP arrays work. You can also define a sort function on the list
+// to keep it sorted.
+//
+// The recommended way to create a SliceMap is to first declare a concrete type alias, and then call
+// new on it, like this:
+//   type MyMap = SafeSliceMap[string,int]
+//
+//   m := new(MyMap)
+//
+// This will allow you to swap in a different kind of Map just by changing the type.
+//
+// Call SetSortFunc to give the map a function that will keep the keys sorted in a particular order.
 type SafeSliceMap[K comparable, V any] struct {
 	sync.RWMutex
 	items StdMap[K, V]

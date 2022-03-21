@@ -9,13 +9,20 @@ import (
 	"strings"
 )
 
-// A SliceMap combines a map with a slice so that you can range over a
-// map in a predictable order. By default, the order will be the same order that items were inserted,
-// i.e. a FIFO list. This is similar to how PHP arrays work.
-// SliceMap implements the sort interface so you can change the order
-// before ranging over the values if desired.
-// It is NOT safe for concurrent use.
-// The SliceMap satisfies the MapI interface.
+// SliceMap is a go map that uses a slice to save the order of its keys so that the map can
+// be ranged in a predictable order. By default, the order will be the same order that items were inserted,
+// i.e. a FIFO list, which is similar to how PHP arrays work. You can also define a sort function on the list
+// to keep it sorted.
+//
+// The recommended way to create a SliceMap is to first declare a concrete type alias, and then call
+// new on it, like this:
+//   type MyMap = SliceMap[string,int]
+//
+//   m := new(MyMap)
+//
+// This will allow you to swap in a different kind of Map just by changing the type.
+//
+// Call SetSortFunc to give the map a function that will keep the keys sorted in a particular order.
 type SliceMap[K comparable, V any] struct {
 	items StdMap[K, V]
 	order []K
@@ -24,6 +31,9 @@ type SliceMap[K comparable, V any] struct {
 
 // SetSortFunc sets the sort function which will determine the order of the items in the map
 // on an ongoing basis. Normally, items will iterate in the order they were added.
+//
+// When you call SetSortFunc, the map keys will be sorted. To turn off sorting, set the sort function to nil.
+//
 // The sort function is a Less function, that returns true when item 1 is "less" than item 2.
 // The sort function receives both the keys and values, so it can use either or both to decide how to sort.
 func (m *SliceMap[K, V]) SetSortFunc(f func(key1, key2 K, val1, val2 V) bool) {
@@ -282,9 +292,12 @@ func (m *SliceMap[K, V]) String() string {
 	return s
 }
 
-// Equaler is the interface that implements an Equal function. If your Map has
+// Equaler is the interface that implements an Equal function and that provides a way for the
+// various MapI like objects to determine if they are equal.
+//
+// In particular, if your Map has
 // non-comparible values, like a slice, but you would still like to call Equal() on that
-// map, define an Equal function to do the comparison.
+// map, define an Equal function on the values to do the comparison. For example:
 //
 //   type mySlice []int
 //

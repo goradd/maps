@@ -4,8 +4,16 @@ import (
 	"sync"
 )
 
-// SafeMap maps a string to a interface{}.
-// This version is safe for concurrent use.
+// SafeMap is a go map that is safe for concurrent use and that uses a standard set of functions
+// shared with other Map-like types.
+//
+// The recommended way to create a SafeMap is to first declare a concrete type alias, and then call
+// new on it, like this:
+//   type MyMap = SafeMap[string,int]
+//
+//   m := new(MyMap)
+//
+// This will allow you to swap in a different kind of Map just by changing the type.
 type SafeMap[K comparable, V any] struct {
 	sync.RWMutex
 	items StdMap[K, V]
