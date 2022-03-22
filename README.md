@@ -17,8 +17,8 @@ package main
 import . "github.com/goradd/maps"
 import "fmt"
 
-type myMap Map[string,int]
-type myStdMap StdMap[string, int]
+type myMap = Map[string,int] // the equal sign here is critical!
+type myStdMap = StdMap[string, int]
 
 func main() {
 	m := new(Map[string, int])
