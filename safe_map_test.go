@@ -1,6 +1,7 @@
 package maps
 
 import (
+	"encoding/gob"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -8,6 +9,10 @@ import (
 
 func TestSafeMap_Mapi(t *testing.T) {
 	runMapiTests[SafeMap[string, int]](t, makeMapi[SafeMap[string, int]])
+}
+
+func init() {
+	gob.Register(new(SafeMap[string, int]))
 }
 
 func TestNil(t *testing.T) {

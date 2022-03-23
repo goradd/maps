@@ -1,6 +1,7 @@
 package maps
 
 import (
+	"encoding/gob"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -12,6 +13,10 @@ type mapTI = MapI[string, int]
 func TestNewStdMap(t *testing.T) {
 	m := NewStdMap(map[string]int{"a": 1})
 	assert.Equal(t, 1, m.Get("a"))
+}
+
+func init() {
+	gob.Register(StdMap[string, int]{})
 }
 
 func TestMap_Clear(t *testing.T) {
