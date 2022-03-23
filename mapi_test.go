@@ -198,20 +198,23 @@ func testBinaryMarshal[M any](t *testing.T, f makeF) {
 	t.Run("BinaryMarshal", func(t *testing.T) {
 		// You would rarely call MarshallBinary directly, but rather would use an encoder, like GOB for binary encoding
 		m := f(mapT{"a": 1, "b": 2, "c": 3})
-		var m2 M
 		var buf bytes.Buffer
 		enc := gob.NewEncoder(&buf) // Will write
 		dec := gob.NewDecoder(&buf) // Will read
 
-		err := enc.Encode(m)
+		var i any
+		i = m
+
+		err := enc.Encode(&i)
 		assert.NoError(t, err)
-		err = dec.Decode(&m2)
+
+		var i2 any
+		err = dec.Decode(&i2)
 		assert.NoError(t, err)
-		var i interface{}
-		i = &m2
-		m3 := i.(MapI[string, int])
-		assert.Equal(t, 1, m3.Get("a"))
-		assert.Equal(t, 3, m3.Get("c"))
+
+		m2 := i2.(MapI[string, int])
+		assert.Equal(t, 1, m2.Get("a"))
+		assert.Equal(t, 3, m2.Get("c"))
 	})
 }
 
