@@ -50,7 +50,7 @@ func testClear(t *testing.T, f makeF) {
 		t.Run("Clear "+tt.name, func(t *testing.T) {
 			tt.m.Clear()
 			if tt.m.Len() != 0 {
-				t.Errorf("MapI not cleared: %q", tt.m)
+				t.Errorf("MapI not cleared")
 			}
 		})
 	}
