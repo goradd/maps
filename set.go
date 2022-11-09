@@ -36,6 +36,9 @@ func (m *Set[K]) Len() int {
 // While its safe to call methods of the set from within the Range function, its discouraged.
 // If you ever switch to one of the SafeSet sets, it will cause a deadlock.
 func (m *Set[K]) Range(f func(k K) bool) {
+	if m == nil || m.items == nil {
+		return
+	}
 	for k := range m.items {
 		if !f(k) {
 			break

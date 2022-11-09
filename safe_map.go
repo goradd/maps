@@ -9,9 +9,10 @@ import (
 //
 // The recommended way to create a SafeMap is to first declare a concrete type alias, and then call
 // new on it, like this:
-//   type MyMap = SafeMap[string,int]
 //
-//   m := new(MyMap)
+//	type MyMap = SafeMap[string,int]
+//
+//	m := new(MyMap)
 //
 // This will allow you to swap in a different kind of Map just by changing the type.
 type SafeMap[K comparable, V any] struct {
@@ -113,7 +114,7 @@ func (m *SafeMap[K, V]) Len() (l int) {
 // During this process, the map will be locked, so do not pass a function that will take
 // significant amounts of time, nor will call into other methods of the SafeMap which might also need a lock.
 func (m *SafeMap[K, V]) Range(f func(k K, v V) bool) {
-	if m.items == nil {
+	if m == nil || m.items == nil {
 		return
 	}
 	m.RLock()

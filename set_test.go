@@ -3,6 +3,7 @@ package maps
 import (
 	"encoding/gob"
 	"fmt"
+	"sort"
 	"testing"
 )
 
@@ -21,6 +22,9 @@ func ExampleSet_String() {
 	m := new(Set[string])
 	m.Add("a")
 	m.Add("b")
-	fmt.Print(m)
-	// Output: {"a","b"}
+	m.Add("a")
+	v := m.Values()
+	sort.Strings(v)
+	fmt.Print(v)
+	// Output: [a b]
 }
