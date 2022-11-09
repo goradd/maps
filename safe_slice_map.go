@@ -19,9 +19,10 @@ import (
 //
 // The recommended way to create a SliceMap is to first declare a concrete type alias, and then call
 // new on it, like this:
-//   type MyMap = SafeSliceMap[string,int]
 //
-//   m := new(MyMap)
+//	type MyMap = SafeSliceMap[string,int]
+//
+//	m := new(MyMap)
 //
 // This will allow you to swap in a different kind of Map just by changing the type.
 //
@@ -282,25 +283,24 @@ func (m *SafeSliceMap[K, V]) UnmarshalJSON(data []byte) (err error) {
 
 // Merge the given map into the current one.
 func (m *SafeSliceMap[K, V]) Merge(in MapI[K, V]) {
-	if in != nil {
-		in.Range(func(k K, v V) bool {
-			m.Set(k, v) // This will lock and unlock
-			return true
-		})
-	}
+	in.Range(func(k K, v V) bool {
+		m.Set(k, v) // This will lock and unlock
+		return true
+	})
 }
 
 // Range will call the given function with every key and value in the order
 // they were placed in the map, or in if you sorted the map, in your custom order.
 // If f returns false, it stops the iteration. This pattern is taken from sync.Map.
 func (m *SafeSliceMap[K, V]) Range(f func(key K, value V) bool) {
+	if m == nil || m.items == nil {
+		return
+	}
 	m.RLock()
 	defer m.RUnlock()
-	if m.items != nil {
-		for _, k := range m.order {
-			if !f(k, m.items[k]) {
-				break
-			}
+	for _, k := range m.order {
+		if !f(k, m.items[k]) {
+			break
 		}
 	}
 }

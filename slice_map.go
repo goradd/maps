@@ -16,9 +16,10 @@ import (
 //
 // The recommended way to create a SliceMap is to first declare a concrete type alias, and then call
 // new on it, like this:
-//   type MyMap = SliceMap[string,int]
 //
-//   m := new(MyMap)
+//	type MyMap = SliceMap[string,int]
+//
+//	m := new(MyMap)
 //
 // This will allow you to swap in a different kind of Map just by changing the type.
 //
@@ -243,19 +244,17 @@ func (m *SliceMap[K, V]) UnmarshalJSON(data []byte) (err error) {
 
 // Merge the given map into the current one.
 func (m *SliceMap[K, V]) Merge(in MapI[K, V]) {
-	if in != nil {
-		in.Range(func(k K, v V) bool {
-			m.Set(k, v)
-			return true
-		})
-	}
+	in.Range(func(k K, v V) bool {
+		m.Set(k, v)
+		return true
+	})
 }
 
 // Range will call the given function with every key and value in the order
 // they were placed in the map, or in if you sorted the map, in your custom order.
 // If f returns false, it stops the iteration. This pattern is taken from sync.Map.
 func (m *SliceMap[K, V]) Range(f func(key K, value V) bool) {
-	if m.items != nil {
+	if m != nil && m.items != nil {
 		for _, k := range m.order {
 			if !f(k, m.items[k]) {
 				break
@@ -299,21 +298,21 @@ func (m *SliceMap[K, V]) String() string {
 // non-comparible values, like a slice, but you would still like to call Equal() on that
 // map, define an Equal function on the values to do the comparison. For example:
 //
-//   type mySlice []int
+//	type mySlice []int
 //
-//   func (s mySlice) Equal(b any) bool {
-//   	if s2, ok := b.(mySlice); ok {
-//   		if len(s) == len(s2) {
-//   			for i, v := range s2 {
-//   				if s[i] != v {
-//   					return false
-//   				}
-//   			}
-//   			return true
-//   		}
-//   	}
-//   	return false
-//   }
+//	func (s mySlice) Equal(b any) bool {
+//		if s2, ok := b.(mySlice); ok {
+//			if len(s) == len(s2) {
+//				for i, v := range s2 {
+//					if s[i] != v {
+//						return false
+//					}
+//				}
+//				return true
+//			}
+//		}
+//		return false
+//	}
 type Equaler interface {
 	Equal(a any) bool
 }
