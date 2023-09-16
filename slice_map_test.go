@@ -121,3 +121,51 @@ func TestSliceMap_GetAt(t *testing.T) {
 	assert.Equal(t, 0, m.GetAt(0))
 	assert.Equal(t, "", m.GetKeyAt(0))
 }
+
+func TestSliceMap_NilMap(t *testing.T) {
+	var m *SliceMap[string, int]
+	assert.Equal(t, 0, m.GetAt(0))
+	assert.Equal(t, "", m.GetKeyAt(0))
+	assert.Equal(t, 0, m.Get("m"))
+	v, ok := m.Load("m")
+	assert.Equal(t, 0, v)
+	assert.Equal(t, false, ok)
+	assert.False(t, m.Has("n"))
+	assert.Nil(t, m.Values())
+	assert.Nil(t, m.Keys())
+
+	assert.Equal(t, m.Len(), 0)
+	assert.Panics(t, func() {
+		m.SetSortFunc(func(k1, k2 string, v1, v2 int) bool { return false })
+	})
+	assert.Panics(t, func() {
+		m.Set("m", 1)
+	})
+	assert.NotPanics(t, func() {
+		m.Delete("m")
+	})
+	assert.NotPanics(t, func() {
+		m.Delete("m")
+	})
+
+	b, err := m.MarshalBinary()
+	assert.Nil(t, b)
+	assert.Nil(t, err)
+
+	b2, err2 := m.MarshalJSON()
+	assert.Nil(t, b2)
+	assert.Nil(t, err2)
+
+	assert.Panics(t, func() {
+		_ = m.UnmarshalBinary(nil)
+	})
+	assert.Panics(t, func() {
+		_ = m.UnmarshalJSON(nil)
+	})
+
+	assert.True(t, m.Equal(nil))
+	assert.NotPanics(t, func() {
+		m.Clear()
+	})
+	assert.Equal(t, "", m.String())
+}
