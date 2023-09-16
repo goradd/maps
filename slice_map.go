@@ -38,6 +38,9 @@ type SliceMap[K comparable, V any] struct {
 // The sort function is a Less function, that returns true when item 1 is "less" than item 2.
 // The sort function receives both the keys and values, so it can use either or both to decide how to sort.
 func (m *SliceMap[K, V]) SetSortFunc(f func(key1, key2 K, val1, val2 V) bool) {
+	if m == nil {
+		panic("cannot set a sort function on a nil SliceMap")
+	}
 	m.lessF = f
 	if f != nil && len(m.order) > 0 {
 		sort.Slice(m.order, func(i, j int) bool {
@@ -53,6 +56,10 @@ func (m *SliceMap[K, V]) SetSortFunc(f func(key1, key2 K, val1, val2 V) bool) {
 func (m *SliceMap[K, V]) Set(key K, val V) {
 	var ok bool
 	var oldVal V
+
+	if m == nil {
+		panic("cannot set a value on a nil SliceMap")
+	}
 
 	if m.items == nil {
 		m.items = make(map[K]V)
@@ -87,11 +94,16 @@ func (m *SliceMap[K, V]) Set(key K, val V) {
 // If the index is bigger than
 // the length, it puts it at the end. Negative indexes are backwards from the end.
 func (m *SliceMap[K, V]) SetAt(index int, key K, val V) {
+	if m == nil {
+		panic("cannot set a value on a nil SliceMap")
+	}
+
 	if m.lessF != nil {
 		panic("cannot use SetAt if you are also using a sort function")
 	}
 
 	if index >= len(m.order) {
+		// will handle m.items == nil
 		m.Set(key, val)
 		return
 	}
@@ -118,6 +130,10 @@ func (m *SliceMap[K, V]) SetAt(index int, key K, val V) {
 
 // Delete removes the item with the given key.
 func (m *SliceMap[K, V]) Delete(key K) {
+	if m == nil {
+		return
+	}
+
 	if _, ok := m.items[key]; ok {
 		if m.lessF != nil {
 			oldVal := m.items[key]
@@ -139,22 +155,34 @@ func (m *SliceMap[K, V]) Delete(key K) {
 
 // Get returns the value based on its key. If the key does not exist, an empty value is returned.
 func (m *SliceMap[K, V]) Get(key K) (val V) {
+	if m == nil {
+		return
+	}
 	return m.items.Get(key)
 }
 
 // Load returns the value based on its key, and a boolean indicating whether it exists in the map.
 // This is the same interface as sync.StdMap.Load()
 func (m *SliceMap[K, V]) Load(key K) (val V, ok bool) {
+	if m == nil {
+		return
+	}
 	return m.items.Load(key)
 }
 
 // Has returns true if the given key exists in the map.
 func (m *SliceMap[K, V]) Has(key K) (ok bool) {
+	if m == nil {
+		return
+	}
 	return m.items.Has(key)
 }
 
 // GetAt returns the value based on its position. If the position is out of bounds, an empty value is returned.
 func (m *SliceMap[K, V]) GetAt(position int) (val V) {
+	if m == nil {
+		return
+	}
 	if position < len(m.order) && position >= 0 {
 		val, _ = m.items[m.order[position]]
 	}
@@ -163,6 +191,9 @@ func (m *SliceMap[K, V]) GetAt(position int) (val V) {
 
 // GetKeyAt returns the key based on its position. If the position is out of bounds, an empty value is returned.
 func (m *SliceMap[K, V]) GetKeyAt(position int) (key K) {
+	if m == nil {
+		return
+	}
 	if position < len(m.order) && position >= 0 {
 		key = m.order[position]
 	}
@@ -171,16 +202,25 @@ func (m *SliceMap[K, V]) GetKeyAt(position int) (key K) {
 
 // Values returns a slice of the values in the order they were added or sorted.
 func (m *SliceMap[K, V]) Values() (vals []V) {
+	if m == nil {
+		return
+	}
 	return m.items.Values()
 }
 
 // Keys returns the keys of the map, in the order they were added or sorted
 func (m *SliceMap[K, V]) Keys() (keys []K) {
+	if m == nil {
+		return
+	}
 	return m.items.Keys()
 }
 
 // Len returns the number of items in the map
 func (m *SliceMap[K, V]) Len() int {
+	if m == nil {
+		return 0
+	}
 	return m.items.Len()
 }
 
@@ -188,6 +228,9 @@ func (m *SliceMap[K, V]) Len() int {
 // If you are using a sort function, you must save and restore the sort function in a separate operation
 // since functions are not serializable.
 func (m *SliceMap[K, V]) MarshalBinary() (data []byte, err error) {
+	if m == nil {
+		return
+	}
 	buf := new(bytes.Buffer)
 	encoder := gob.NewEncoder(buf)
 
@@ -205,6 +248,10 @@ func (m *SliceMap[K, V]) UnmarshalBinary(data []byte) (err error) {
 	var items map[K]V
 	var order []K
 
+	if m == nil {
+		panic("cannot Unmarshal into a nil SliceMap")
+	}
+
 	buf := bytes.NewBuffer(data)
 	dec := gob.NewDecoder(buf)
 	if err = dec.Decode(&items); err == nil {
@@ -221,6 +268,9 @@ func (m *SliceMap[K, V]) UnmarshalBinary(data []byte) (err error) {
 // MarshalJSON implements the json.Marshaler interface to convert the map into a JSON object.
 func (m *SliceMap[K, V]) MarshalJSON() (data []byte, err error) {
 	// Json objects are unordered
+	if m == nil {
+		return
+	}
 	return m.items.MarshalJSON()
 }
 
@@ -229,6 +279,9 @@ func (m *SliceMap[K, V]) MarshalJSON() (data []byte, err error) {
 func (m *SliceMap[K, V]) UnmarshalJSON(data []byte) (err error) {
 	var items map[K]V
 
+	if m == nil {
+		panic("cannot unmarshall into a nil SliceMap")
+	}
 	if err = json.Unmarshal(data, &items); err == nil {
 		m.items = items
 		// Create a default order, since these are inherently unordered
@@ -268,11 +321,17 @@ func (m *SliceMap[K, V]) Range(f func(key K, value V) bool) {
 // If the values are not comparable, you should implement the Equaler interface on the values.
 // Otherwise, you will get a runtime panic.
 func (m *SliceMap[K, V]) Equal(m2 MapI[K, V]) bool {
+	if m == nil {
+		return m2 == nil || m2.Len() == 0
+	}
 	return m.items.Equal(m2)
 }
 
 // Clear removes all the items in the map.
 func (m *SliceMap[K, V]) Clear() {
+	if m == nil {
+		return
+	}
 	m.items = nil
 	m.order = nil
 }
@@ -280,6 +339,10 @@ func (m *SliceMap[K, V]) Clear() {
 // String outputs the map as a string.
 func (m *SliceMap[K, V]) String() string {
 	var s string
+
+	if m == nil {
+		return s
+	}
 
 	s = "{"
 	m.Range(func(k K, v V) bool {
