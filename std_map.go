@@ -12,7 +12,8 @@ import (
 //
 // The zero value is NOT settable. Use NewStdMap to create a new StdMap object, or use standard
 // map instantiation syntax like this:
-//   m := StdMap[string, int]{"a":1}
+//
+//	m := StdMap[string, int]{"a":1}
 //
 // StdMap is mostly a convenience type for making a standard Go map into a MapI interface.
 // Generally, you should use Map instead, as it presents a consistent interface that allows you
@@ -22,7 +23,8 @@ type StdMap[K comparable, V any] map[K]V
 // NewStdMap creates a new map that maps values of type K to values of type V.
 // Pass in zero or more standard maps and the contents of those maps will be copied to the new StdMap.
 // You can also create a new StdMap like this:
-//   m := StdMap[string, int]{"a":1}
+//
+//	m := StdMap[string, int]{"a":1}
 func NewStdMap[K comparable, V any](sources ...map[K]V) StdMap[K, V] {
 	m := StdMap[K, V]{}
 	for _, i := range sources {
@@ -103,9 +105,11 @@ func (m StdMap[K, V]) Set(k K, v V) {
 	m[k] = v
 }
 
-// Delete removes the key from the map. If the key does not exist, nothing happens.
-func (m StdMap[K, V]) Delete(k K) {
+// Delete removes the key from the map and returns the value. If the key does not exist, the zero value will be returned.
+func (m StdMap[K, V]) Delete(k K) (v V) {
+	v, _ = m.Load(k)
 	delete(m, k)
+	return
 }
 
 // Keys returns a new slice containing the keys of the map.
@@ -176,9 +180,10 @@ func (m StdMap[K, V]) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a Map.
 //
 // Note that you will likely need to register the unmarshaller at init time with gob like this:
-//    func init() {
-//      gob.Register(new(Map[K,V]))
-//    }
+//
+//	func init() {
+//	  gob.Register(new(Map[K,V]))
+//	}
 func (m *StdMap[K, V]) UnmarshalBinary(data []byte) (err error) {
 	b := bytes.NewBuffer(data)
 	dec := gob.NewDecoder(b)

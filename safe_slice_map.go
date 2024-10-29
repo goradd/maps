@@ -125,14 +125,14 @@ func (m *SafeSliceMap[K, V]) SetAt(index int, key K, val V) {
 	m.Unlock()
 }
 
-// Delete removes the item with the given key.
-func (m *SafeSliceMap[K, V]) Delete(key K) {
+// Delete removes the item with the given key and returns the value.
+func (m *SafeSliceMap[K, V]) Delete(key K) (val V) {
 	m.Lock()
 	if _, ok := m.items[key]; ok {
+		val = m.items[key]
 		if m.lessF != nil {
-			oldVal := m.items[key]
 			loc := sort.Search(len(m.items), func(n int) bool {
-				return !m.lessF(m.order[n], key, m.items[m.order[n]], oldVal)
+				return !m.lessF(m.order[n], key, m.items[m.order[n]], val)
 			})
 			m.order = append(m.order[:loc], m.order[loc+1:]...)
 		} else {
@@ -146,6 +146,7 @@ func (m *SafeSliceMap[K, V]) Delete(key K) {
 		delete(m.items, key)
 	}
 	m.Unlock()
+	return
 }
 
 // Get returns the value based on its key. If the key does not exist, an empty value is returned.
