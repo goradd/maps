@@ -192,17 +192,29 @@ func (m *SafeSliceMap[K, V]) GetKeyAt(position int) (key K) {
 }
 
 // Values returns a slice of the values in the order they were added or sorted.
-func (m *SafeSliceMap[K, V]) Values() (vals []V) {
+func (m *SafeSliceMap[K, V]) Values() (values []V) {
 	m.RLock()
 	defer m.RUnlock()
-	return m.items.Values()
+	if m == nil {
+		return
+	}
+	for _, k := range m.order {
+		values = append(values, m.items[k])
+	}
+	return values
 }
 
 // Keys returns the keys of the map, in the order they were added or sorted.
 func (m *SafeSliceMap[K, V]) Keys() (keys []K) {
 	m.RLock()
 	defer m.RUnlock()
-	return m.items.Keys()
+	if m == nil {
+		return
+	}
+	for _, k := range m.order {
+		keys = append(keys, k)
+	}
+	return
 }
 
 // Len returns the number of items in the map.

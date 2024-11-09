@@ -202,11 +202,14 @@ func (m *SliceMap[K, V]) GetKeyAt(position int) (key K) {
 }
 
 // Values returns a slice of the values in the order they were added or sorted.
-func (m *SliceMap[K, V]) Values() (vals []V) {
+func (m *SliceMap[K, V]) Values() (values []V) {
 	if m == nil {
 		return
 	}
-	return m.items.Values()
+	for _, k := range m.order {
+		values = append(values, m.items[k])
+	}
+	return values
 }
 
 // Keys returns the keys of the map, in the order they were added or sorted
@@ -214,7 +217,10 @@ func (m *SliceMap[K, V]) Keys() (keys []K) {
 	if m == nil {
 		return
 	}
-	return m.items.Keys()
+	for _, k := range m.order {
+		keys = append(keys, k)
+	}
+	return
 }
 
 // Len returns the number of items in the map
