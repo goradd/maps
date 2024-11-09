@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
+	"slices"
 )
 
 // Set is a collection that keeps track of membership.
@@ -162,10 +163,11 @@ func (m *Set[K]) UnmarshalJSON(in []byte) (err error) {
 	return
 }
 
-// String returns the set as a string.
+// String returns the set as a string in a predictable way.
 func (m *Set[K]) String() string {
+	vals := slices.Clone(m.Values())
 	ret := "{"
-	for i, v := range m.Values() {
+	for i, v := range vals {
 		ret += fmt.Sprintf("%#v", v)
 		if i < m.Len()-1 {
 			ret += ","

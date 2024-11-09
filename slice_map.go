@@ -136,17 +136,17 @@ func (m *SliceMap[K, V]) SetAt(index int, key K, val V) {
 	m.items[key] = val
 }
 
-// Delete removes the item with the given key.
-func (m *SliceMap[K, V]) Delete(key K) {
+// Delete removes the key from the map and returns the value. If the key does not exist, the zero value will be returned.
+func (m *SliceMap[K, V]) Delete(key K) (val V) {
 	if m == nil {
 		return
 	}
 
 	if _, ok := m.items[key]; ok {
+		val = m.items[key]
 		if m.lessF != nil {
-			oldVal := m.items[key]
 			loc := sort.Search(len(m.items), func(n int) bool {
-				return !m.lessF(m.order[n], key, m.items[m.order[n]], oldVal)
+				return !m.lessF(m.order[n], key, m.items[m.order[n]], val)
 			})
 			m.order = slices.Delete(m.order, loc, loc+1)
 		} else {
@@ -159,6 +159,7 @@ func (m *SliceMap[K, V]) Delete(key K) {
 		}
 		delete(m.items, key)
 	}
+	return
 }
 
 // Get returns the value based on its key. If the key does not exist, an empty value is returned.
@@ -208,12 +209,11 @@ func (m *SliceMap[K, V]) GetKeyAt(position int) (key K) {
 	return
 }
 
-// Values returns a new slice of the values in the order they were added or sorted.
-func (m *SliceMap[K, V]) Values() (vals []V) {
+// Values returns a slice of the values in the order they were added or sorted.
+func (m *SliceMap[K, V]) Values() (values []V) {
 	if m == nil {
 		return
 	}
-	values := make([]V, 0, len(m.order))
 	for _, k := range m.order {
 		values = append(values, m.items[k])
 	}

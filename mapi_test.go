@@ -251,15 +251,18 @@ func testUnmarshalJSON[M any](t *testing.T, f makeF) {
 func testDelete(t *testing.T, f makeF) {
 	t.Run("Delete", func(t *testing.T) {
 		m := f(mapT{"a": 1, "b": 2})
-		m.Delete("a")
+		v := m.Delete("a")
 
+		assert.Equal(t, 1, v)
 		assert.False(t, m.Has("a"))
 		assert.True(t, m.Has("b"))
 
-		m.Delete("b")
+		v = m.Delete("b")
+		assert.Equal(t, 2, v)
 		assert.False(t, m.Has("b"))
 
-		m.Delete("b") // make sure deleting from an empty map is a no-op
+		v = m.Delete("b") // make sure deleting from an empty map is a no-op
+		assert.Equal(t, 0, v)
 	})
 }
 

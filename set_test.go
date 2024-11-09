@@ -30,11 +30,11 @@ func ExampleSet_String() {
 	// Output: [a b]
 }
 
-func ExampleCollectSet() {
+func TestCollectSet(t *testing.T) {
 	m1 := NewSet("a", "b", "c")
 	m2 := CollectSet(m1.All())
 	fmt.Println(m2.String())
-	// Output: {"a","b","c"}
+	assert.True(t, m1.Equal(m2))
 }
 
 func TestSet_Clone(t *testing.T) {

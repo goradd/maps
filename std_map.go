@@ -115,9 +115,11 @@ func (m StdMap[K, V]) Set(k K, v V) {
 	m[k] = v
 }
 
-// Delete removes the key from the map. If the key does not exist, nothing happens.
-func (m StdMap[K, V]) Delete(k K) {
+// Delete removes the key from the map and returns the value. If the key does not exist, the zero value will be returned.
+func (m StdMap[K, V]) Delete(k K) (v V) {
+	v, _ = m.Load(k)
 	delete(m, k)
+	return
 }
 
 // Keys returns a new slice containing the keys of the map.

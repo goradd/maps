@@ -71,11 +71,11 @@ func (m *SafeSliceMap[K, V]) SetAt(index int, key K, val V) {
 	m.sm.SetAt(index, key, val)
 }
 
-// Delete removes the item with the given key.
-func (m *SafeSliceMap[K, V]) Delete(key K) {
+// Delete removes the item with the given key and returns the value.
+func (m *SafeSliceMap[K, V]) Delete(key K) (val V) {
 	m.Lock()
 	defer m.Unlock()
-	m.sm.Delete(key)
+	return m.sm.Delete(key)
 }
 
 // Get returns the value based on its key. If the key does not exist, an empty value is returned.
@@ -115,7 +115,7 @@ func (m *SafeSliceMap[K, V]) GetKeyAt(position int) (key K) {
 }
 
 // Values returns a slice of the values in the order they were added or sorted.
-func (m *SafeSliceMap[K, V]) Values() (vals []V) {
+func (m *SafeSliceMap[K, V]) Values() (values []V) {
 	m.RLock()
 	defer m.RUnlock()
 	return m.sm.Values()

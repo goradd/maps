@@ -15,7 +15,7 @@ type MapI[K comparable, V any] interface {
 	Values() []V
 	Merge(MapI[K, V])
 	Equal(MapI[K, V]) bool
-	Delete(k K)
+	Delete(k K) V
 	All() iter.Seq2[K, V]
 	KeysIter() iter.Seq[K]
 	ValuesIter() iter.Seq[V]

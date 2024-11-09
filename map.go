@@ -63,8 +63,8 @@ func (m *Map[K, V]) Has(k K) bool {
 }
 
 // Delete removes the key from the map. If the key does not exist, nothing happens.
-func (m *Map[K, V]) Delete(k K) {
-	m.items.Delete(k)
+func (m Map[K, V]) Delete(k K) V {
+	return m.items.Delete(k)
 }
 
 // Keys returns a new slice containing the keys of the map.
