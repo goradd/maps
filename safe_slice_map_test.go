@@ -3,8 +3,9 @@ package maps
 import (
 	"encoding/gob"
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSafeSliceMap_Mapi(t *testing.T) {

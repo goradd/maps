@@ -4,9 +4,10 @@ package maps
 //
 // The recommended way to create a Map is to first declare a concrete type alias, and then call
 // new on it, like this:
-//   type MyMap = Map[string,int]
 //
-//   m := new(MyMap)
+//	type MyMap = Map[string,int]
+//
+//	m := new(MyMap)
 //
 // This will allow you to swap in a different kind of Map just by changing the type.
 type Map[K comparable, V any] struct {
@@ -48,8 +49,8 @@ func (m Map[K, V]) Has(k K) bool {
 }
 
 // Delete removes the key from the map. If the key does not exist, nothing happens.
-func (m Map[K, V]) Delete(k K) {
-	m.items.Delete(k)
+func (m Map[K, V]) Delete(k K) V {
+	return m.items.Delete(k)
 }
 
 // Keys returns a new slice containing the keys of the map.
@@ -95,9 +96,10 @@ func (m Map[K, V]) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a Map.
 //
 // Note that you may need to register the map at init time with gob like this:
-//    func init() {
-//      gob.Register(new(Map[keytype,valuetype]))
-//    }
+//
+//	func init() {
+//	  gob.Register(new(Map[keytype,valuetype]))
+//	}
 func (m *Map[K, V]) UnmarshalBinary(data []byte) (err error) {
 	return m.items.UnmarshalBinary(data)
 }

@@ -13,7 +13,7 @@ type MapI[K comparable, V any] interface {
 	Values() []V
 	Merge(MapI[K, V])
 	Equal(MapI[K, V]) bool
-	Delete(k K)
+	Delete(k K) (v V)
 }
 
 // Setter sets a value in a map.

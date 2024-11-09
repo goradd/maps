@@ -67,11 +67,12 @@ func (m *SafeMap[K, V]) Load(k K) (v V, ok bool) {
 	return
 }
 
-// Delete removes the key from the map. If the key does not exist, nothing happens.
-func (m *SafeMap[K, V]) Delete(k K) {
+// Delete removes the key from the map and returns the value. If the key does not exist, the zero value will be returned.
+func (m *SafeMap[K, V]) Delete(k K) (v V) {
 	m.Lock()
-	m.items.Delete(k)
+	v = m.items.Delete(k)
 	m.Unlock()
+	return
 }
 
 // Values returns a slice of the values. It will return a nil slice if the map is empty.
