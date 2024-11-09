@@ -1,6 +1,7 @@
 package maps
 
 import (
+	"iter"
 	"sync"
 )
 
@@ -15,9 +16,21 @@ import (
 //	m := new(MyMap)
 //
 // This will allow you to swap in a different kind of Map just by changing the type.
+//
+// Do not make a copy of a SafeMap using the equality operator (=). Use Clone instead.
 type SafeMap[K comparable, V any] struct {
 	sync.RWMutex
 	items StdMap[K, V]
+}
+
+// NewSafeMap creates a new SafeMap.
+// Pass in zero or more standard maps and the contents of those maps will be copied to the new SafeMap.
+func NewSafeMap[K comparable, V any](sources ...map[K]V) *SafeMap[K, V] {
+	m := new(SafeMap[K, V])
+	for _, i := range sources {
+		m.Copy(Cast(i))
+	}
+	return m
 }
 
 // Clear resets the map to an empty map.
@@ -123,13 +136,19 @@ func (m *SafeMap[K, V]) Range(f func(k K, v V) bool) {
 }
 
 // Merge merges the given  map with the current one. The given one takes precedent on collisions.
+// Deprecated: Use Copy instead.
 func (m *SafeMap[K, V]) Merge(in MapI[K, V]) {
+	m.Copy(in)
+}
+
+// Copy copies the keys and values of in into this map, overwriting any duplicates.
+func (m *SafeMap[K, V]) Copy(in MapI[K, V]) {
 	if m.items == nil {
 		m.items = make(map[K]V, in.Len())
 	}
 	m.Lock()
 	defer m.Unlock()
-	m.items.Merge(in)
+	m.items.Copy(in)
 }
 
 // Equal returns true if all the keys in the given map exist in this map, and the values are the same
@@ -174,4 +193,81 @@ func (m *SafeMap[K, V]) String() string {
 	m.RLock()
 	defer m.RUnlock()
 	return m.items.String()
+}
+
+// All returns an iterator over all the items in the map.
+func (m *SafeMap[K, V]) All() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		m.Range(yield)
+	}
+}
+
+// KeysIter returns an iterator over all the keys in the map.
+func (m *SafeMap[K, V]) KeysIter() iter.Seq[K] {
+	return func(yield func(K) bool) {
+		if m.items == nil {
+			return
+		}
+		m.RLock()
+		defer m.RUnlock()
+		for k, _ := range m.items {
+			if !yield(k) {
+				break
+			}
+		}
+	}
+}
+
+// ValuesIter returns an iterator over all the values in the map.
+func (m *SafeMap[K, V]) ValuesIter() iter.Seq[V] {
+	return func(yield func(V) bool) {
+		if m.items == nil {
+			return
+		}
+		m.RLock()
+		defer m.RUnlock()
+		for _, v := range m.items {
+			if !yield(v) {
+				break
+			}
+		}
+	}
+}
+
+// Insert adds the values from seq to the map.
+// Duplicate keys are overridden.
+func (m *SafeMap[K, V]) Insert(seq iter.Seq2[K, V]) {
+	m.Lock()
+	defer m.Unlock()
+	for k, v := range seq {
+		m.items[k] = v
+	}
+}
+
+// CollectSafeMap collects key-value pairs from seq into a new SafeMap
+// and returns it.
+func CollectSafeMap[K comparable, V any](seq iter.Seq2[K, V]) *SafeMap[K, V] {
+	m := new(SafeMap[K, V])
+	m.items = StdMap[K, V]{}
+	for k, v := range seq {
+		m.items[k] = v
+	}
+	return m
+}
+
+// Clone returns a copy of the SafeMap. This is a shallow clone:
+// the new keys and values are set using ordinary assignment.
+func (m *SafeMap[K, V]) Clone() *SafeMap[K, V] {
+	m1 := new(SafeMap[K, V])
+	m.RLock()
+	defer m.RUnlock()
+	m1.items = m.items.Clone()
+	return m1
+}
+
+// DeleteFunc deletes any key/value pairs for which del returns true.
+func (m *SafeMap[K, V]) DeleteFunc(del func(K, V) bool) {
+	m.Lock()
+	defer m.Unlock()
+	m.items.DeleteFunc(del)
 }

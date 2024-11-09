@@ -5,6 +5,8 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"iter"
+	"maps"
 	"strings"
 )
 
@@ -12,7 +14,8 @@ import (
 //
 // The zero value is NOT settable. Use NewStdMap to create a new StdMap object, or use standard
 // map instantiation syntax like this:
-//   m := StdMap[string, int]{"a":1}
+//
+//	m := StdMap[string, int]{"a":1}
 //
 // StdMap is mostly a convenience type for making a standard Go map into a MapI interface.
 // Generally, you should use Map instead, as it presents a consistent interface that allows you
@@ -22,11 +25,12 @@ type StdMap[K comparable, V any] map[K]V
 // NewStdMap creates a new map that maps values of type K to values of type V.
 // Pass in zero or more standard maps and the contents of those maps will be copied to the new StdMap.
 // You can also create a new StdMap like this:
-//   m := StdMap[string, int]{"a":1}
+//
+//	m := StdMap[string, int]{"a":1}
 func NewStdMap[K comparable, V any](sources ...map[K]V) StdMap[K, V] {
 	m := StdMap[K, V]{}
 	for _, i := range sources {
-		m.Merge(Cast(i))
+		m.Copy(Cast(i))
 	}
 	return m
 }
@@ -51,9 +55,15 @@ func (m StdMap[K, V]) Len() int {
 }
 
 // Merge copies the items from in to the map, overwriting any conflicting keys.
+// Deprecated: use Copy instead
 func (m StdMap[K, V]) Merge(in MapI[K, V]) {
+	m.Copy(in)
+}
+
+// Copy copies the items from in to the map, overwriting any conflicting keys.
+func (m StdMap[K, V]) Copy(in MapI[K, V]) {
 	if m == nil {
-		panic("cannot merge into a nil map")
+		panic("cannot copy into a nil map")
 	}
 	in.Range(func(k K, v V) bool {
 		m[k] = v
@@ -65,6 +75,8 @@ func (m StdMap[K, V]) Merge(in MapI[K, V]) {
 // This is the same interface as sync.Map.Range().
 // While its safe to call methods of the map from within the Range function, its discouraged.
 // If you ever switch to one of the SafeMap maps, it will cause a deadlock.
+//
+// You can also range over a map using All().
 func (m StdMap[K, V]) Range(f func(k K, v V) bool) {
 	for k, v := range m {
 		if !f(k, v) {
@@ -141,7 +153,7 @@ func (m StdMap[K, V]) Values() (values []V) {
 // Equal returns true if all the keys and values are equal.
 //
 // If the values are not comparable, you should implement the Equaler interface on the values.
-// Otherwise you will get a runtime panic.
+// Otherwise, you will get a runtime panic.
 func (m StdMap[K, V]) Equal(m2 MapI[K, V]) bool {
 	if m.Len() != m2.Len() {
 		return false
@@ -176,9 +188,10 @@ func (m StdMap[K, V]) MarshalBinary() ([]byte, error) {
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a Map.
 //
 // Note that you will likely need to register the unmarshaller at init time with gob like this:
-//    func init() {
-//      gob.Register(new(Map[K,V]))
-//    }
+//
+//	func init() {
+//	  gob.Register(new(Map[K,V]))
+//	}
 func (m *StdMap[K, V]) UnmarshalBinary(data []byte) (err error) {
 	b := bytes.NewBuffer(data)
 	dec := gob.NewDecoder(b)
@@ -202,4 +215,44 @@ func (m *StdMap[K, V]) UnmarshalJSON(in []byte) (err error) {
 	err = json.Unmarshal(in, &v)
 	*m = v
 	return
+}
+
+// All returns an iterator over all the items in the map.
+func (m StdMap[K, V]) All() iter.Seq2[K, V] {
+	return maps.All(m)
+}
+
+// KeysIter returns an iterator over all the keys in the map.
+func (m StdMap[K, V]) KeysIter() iter.Seq[K] {
+	return maps.Keys(m)
+}
+
+// ValuesIter returns an iterator over all the values in the map.
+func (m StdMap[K, V]) ValuesIter() iter.Seq[V] {
+	return maps.Values(m)
+}
+
+// Insert adds the values from seq to the map.
+// Duplicate keys are overridden.
+func (m StdMap[K, V]) Insert(seq iter.Seq2[K, V]) {
+	maps.Insert(m, seq)
+}
+
+// CollectStdMap collects key-value pairs from seq into a new StdMap
+// and returns it.
+func CollectStdMap[K comparable, V any](seq iter.Seq2[K, V]) StdMap[K, V] {
+	m := StdMap[K, V]{}
+	m.Insert(seq)
+	return m
+}
+
+// Clone returns a copy of the StdMap. This is a shallow clone:
+// the new keys and values are set using ordinary assignment.
+func (m StdMap[K, V]) Clone() StdMap[K, V] {
+	return maps.Clone(m)
+}
+
+// DeleteFunc deletes any key/value pairs for which del returns true.
+func (m StdMap[K, V]) DeleteFunc(del func(K, V) bool) {
+	maps.DeleteFunc(m, del)
 }

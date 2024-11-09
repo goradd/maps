@@ -100,7 +100,7 @@ func TestSliceMap_SetAt(t *testing.T) {
 	// delete and set will put to end
 	m.Delete("e")
 	m.Set("e", 6)
-	assert.Equal(t, 6, m.GetAt(4))
+	assert.Equal(t, 6, m.GetAt(m.Len()-1))
 
 	// Or force it to new location
 	m.SetAt(3, "e", 6)
@@ -168,4 +168,51 @@ func TestSliceMap_NilMap(t *testing.T) {
 		m.Clear()
 	})
 	assert.Equal(t, "", m.String())
+}
+
+func TestSliceMap_Clone(t *testing.T) {
+	// Create a new SafeSliceMap and populate it
+	originalMap := NewSliceMap[string, int]()
+	originalMap.Set("b", 2)
+	originalMap.Set("a", 1)
+	originalMap.Set("c", 3)
+
+	// Clone the original map
+	clonedMap := originalMap.Clone()
+
+	assert.True(t, clonedMap.Equal(originalMap))
+
+	// Verify that modifying the cloned map does not affect the original map
+	clonedMap.Set("a", 100)
+	if originalMap.Get("a") == 100 {
+		t.Error("Modification in cloned map affected the original map")
+	}
+
+	// Verify that the original map remains unchanged
+	if originalMap.Get("a") != 1 {
+		t.Errorf("Expected value for key 'a' in original map to be %d, got %d", 1, originalMap.Get("a"))
+	}
+
+	// Verify order is the same
+	values := clonedMap.Values()
+	expectedValues := []int{2, 100, 3}
+	assert.Equal(t, expectedValues, values)
+}
+
+func TestCollectSliceMap(t *testing.T) {
+	// Create a sequence of key-value pairs
+	s := NewSliceMap[string, int]()
+	s.Set("b", 2)
+	s.Set("a", 1)
+	s.Set("c", 3)
+	seq := s.All()
+	// Use CollectSafeSliceMap to create a new SafeSliceMap
+	collectedMap := CollectSafeSliceMap(seq)
+
+	assert.True(t, s.Equal(collectedMap))
+
+	// Ensure the order of keys follows the insertion order
+	keys := collectedMap.Keys()
+	expectedKeys := []string{"b", "a", "c"}
+	assert.Equal(t, keys, expectedKeys)
 }

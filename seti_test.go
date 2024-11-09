@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"slices"
 	"testing"
 )
 
@@ -33,6 +34,9 @@ func runSetITests[M any](t *testing.T, f makeSetF) {
 	testSetMarshalJSON(t, f)
 	testSetUnmarshalJSON[M](t, f)
 	testSetDelete(t, f)
+	testSetAll(t, f)
+	testSetInsert(t, f)
+	testSetDeleteFunc(t, f)
 }
 
 func testSetClear(t *testing.T, f makeSetF) {
@@ -222,5 +226,39 @@ func testSetDelete(t *testing.T, f makeSetF) {
 		assert.False(t, m.Has("b"))
 
 		m.Delete("b") // make sure deleting from an empty map is a no-op
+	})
+}
+
+func testSetAll(t *testing.T, f makeSetF) {
+	t.Run("All", func(t *testing.T) {
+		m := f("a", "b", "c")
+
+		var actualValues []string
+
+		for k := range m.All() {
+			actualValues = append(actualValues, k)
+		}
+		slices.Sort(actualValues)
+
+		assert.Equal(t, []string{"a", "b", "c"}, actualValues)
+	})
+}
+
+func testSetInsert(t *testing.T, f makeSetF) {
+	t.Run("Insert", func(t *testing.T) {
+		m1 := f("a", "b", "c")
+		m2 := f("a")
+		m2.Insert(m1.All())
+		assert.True(t, m1.Equal(m2))
+	})
+}
+
+func testSetDeleteFunc(t *testing.T, f makeSetF) {
+	t.Run("DeleteFunc", func(t *testing.T) {
+		m1 := f("a", "b", "c")
+		m1.DeleteFunc(func(k string) bool {
+			return k != "b"
+		})
+		assert.Equal(t, 1, m1.Len())
 	})
 }

@@ -38,3 +38,12 @@ func ExampleSafeMap_String() {
 	fmt.Print(m)
 	// Output: {"a":1, "b":2}
 }
+
+func TestCollectSafeMap(t *testing.T) {
+	m := StdMap[string, int]{"a": 1, "b": 2}
+	m2 := CollectSafeMap(m.All())
+	assert.True(t, m.Equal(m2))
+
+	m3 := m2.Clone()
+	assert.True(t, m.Equal(m3))
+}

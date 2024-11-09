@@ -2,8 +2,10 @@ package maps
 
 import (
 	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"slices"
 	"testing"
 )
 
@@ -235,4 +237,162 @@ func TestEqualValues(t *testing.T) {
 	e := []float32{1, 2}
 	f := []float32{1, 2}
 	assert.Panics(t, func() { equalValues(e, f) })
+}
+
+func TestMarshalBinary(t *testing.T) {
+	m := StdMap[string, int]{"a": 1, "b": 2}
+
+	// Marshal the map
+	data, err := m.MarshalBinary()
+	if err != nil {
+		t.Fatalf("Error marshalling: %v", err)
+	}
+
+	// Unmarshal the data
+	var m2 StdMap[string, int]
+	err = m2.UnmarshalBinary(data)
+	if err != nil {
+		t.Fatalf("Error unmarshalling: %v", err)
+	}
+
+	// Compare the original and unmarshalled maps
+	assert.Equal(t, m, m2)
+}
+
+func TestMarshalJSON(t *testing.T) {
+	m := StdMap[string, int]{"a": 1, "b": 2}
+
+	// Marshal the map to JSON
+	jsonData, err := json.Marshal(m)
+	if err != nil {
+		t.Fatalf("Error marshalling to JSON: %v", err)
+	}
+
+	// Assert the JSON output
+	expectedJSON := `{"a":1,"b":2}`
+	assert.Equal(t, expectedJSON, string(jsonData))
+}
+
+func TestUnmarshalJSON(t *testing.T) {
+	jsonData := []byte(`{"a":1,"b":2}`)
+
+	// Unmarshal the JSON into a StdMap
+	var m StdMap[string, int]
+	err := json.Unmarshal(jsonData, &m)
+	if err != nil {
+		t.Fatalf("Error unmarshalling from JSON: %v", err)
+	}
+
+	// Assert the unmarshalled map
+	assert.Equal(t, 1, m["a"])
+	assert.Equal(t, 2, m["b"])
+}
+
+func TestUnmarshalJSONInvalidInput(t *testing.T) {
+	invalidJSON := []byte(`invalid json`)
+
+	// Unmarshal the invalid JSON
+	var m StdMap[string, int]
+	err := json.Unmarshal(invalidJSON, &m)
+	assert.Error(t, err)
+}
+
+func TestDelete(t *testing.T) {
+	m := StdMap[string, int]{"a": 1, "b": 2}
+
+	// Delete an existing key
+	m.Delete("a")
+	_, ok := m["a"]
+	assert.False(t, ok)
+
+	// Delete a non-existent key
+	m.Delete("c")
+	// No error should occur, and the map should remain unchanged
+	assert.Equal(t, 2, m["b"])
+}
+
+func TestString(t *testing.T) {
+	m := StdMap[string, int]{"a": 1, "b": 2}
+
+	// Get the string representation
+	str := m.String()
+
+	// Check the string representation
+	expected := `{"a":1, "b":2}`
+	assert.Equal(t, expected, str)
+}
+
+func ExampleStdMap_All() {
+	m := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+
+	var actualKeys []string
+	var actualValues []int
+
+	for k, v := range m.All() {
+		actualKeys = append(actualKeys, k)
+		actualValues = append(actualValues, v)
+	}
+	slices.Sort(actualKeys)
+	slices.Sort(actualValues)
+	fmt.Println(actualKeys)
+	fmt.Println(actualValues)
+
+	// Output: [a b c]
+	// [1 2 3]
+}
+
+func ExampleStdMap_KeysIter() {
+	m := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+
+	var actualKeys []string
+
+	for k := range m.KeysIter() {
+		actualKeys = append(actualKeys, k)
+	}
+	slices.Sort(actualKeys)
+	fmt.Println(actualKeys)
+
+	// Output: [a b c]
+}
+
+func ExampleStdMap_ValuesIter() {
+	m := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+
+	var actualValues []int
+
+	for v := range m.ValuesIter() {
+		actualValues = append(actualValues, v)
+	}
+	slices.Sort(actualValues)
+	fmt.Println(actualValues)
+
+	// Output: [1 2 3]
+}
+
+func TestStdMap_Insert(t *testing.T) {
+	m1 := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+	m2 := StdMap[string, int]{"a": 1}
+	m2.Insert(m1.All())
+	assert.True(t, m1.Equal(m2))
+}
+
+func TestStdMap_Collect(t *testing.T) {
+	m1 := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+	m2 := CollectStdMap(m1.All())
+	assert.True(t, m1.Equal(m2))
+}
+
+func TestStdMap_Clone(t *testing.T) {
+	m1 := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+	m2 := m1.Clone()
+	assert.True(t, m1.Equal(m2))
+}
+
+func ExampleStdMap_DeleteFunc() {
+	m1 := StdMap[string, int]{"a": 1, "b": 2, "c": 3}
+	m1.DeleteFunc(func(k string, v int) bool {
+		return v != 2
+	})
+	fmt.Println(m1.String())
+	// Output: {"b":2}
 }

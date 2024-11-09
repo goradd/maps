@@ -3,6 +3,7 @@ package maps
 import (
 	"encoding/gob"
 	"fmt"
+	"github.com/stretchr/testify/assert"
 	"sort"
 	"testing"
 )
@@ -27,4 +28,18 @@ func ExampleSet_String() {
 	sort.Strings(v)
 	fmt.Print(v)
 	// Output: [a b]
+}
+
+func ExampleCollectSet() {
+	m1 := NewSet("a", "b", "c")
+	m2 := CollectSet(m1.All())
+	fmt.Println(m2.String())
+	// Output: {"a","b","c"}
+}
+
+func TestSet_Clone(t *testing.T) {
+	m1 := NewSet("a", "b", "c")
+	m2 := CollectSet(m1.All())
+	m3 := m2.Clone()
+	assert.True(t, m1.Equal(m3))
 }

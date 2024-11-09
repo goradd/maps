@@ -5,6 +5,8 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"iter"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -28,6 +30,16 @@ type SliceMap[K comparable, V any] struct {
 	items StdMap[K, V]
 	order []K
 	lessF func(key1, key2 K, val1, val2 V) bool
+}
+
+// NewSliceMap creates a new SliceMap.
+// Pass in zero or more standard maps and the contents of those maps will be copied to the new SafeMap.
+func NewSliceMap[K comparable, V any](sources ...map[K]V) *SliceMap[K, V] {
+	m := new(SliceMap[K, V])
+	for _, i := range sources {
+		m.Copy(Cast(i))
+	}
+	return m
 }
 
 // SetSortFunc sets the sort function which will determine the order of the items in the map
@@ -94,10 +106,6 @@ func (m *SliceMap[K, V]) Set(key K, val V) {
 // If the index is bigger than
 // the length, it puts it at the end. Negative indexes are backwards from the end.
 func (m *SliceMap[K, V]) SetAt(index int, key K, val V) {
-	if m == nil {
-		panic("cannot set a value on a nil SliceMap")
-	}
-
 	if m.lessF != nil {
 		panic("cannot use SetAt if you are also using a sort function")
 	}
@@ -140,11 +148,11 @@ func (m *SliceMap[K, V]) Delete(key K) {
 			loc := sort.Search(len(m.items), func(n int) bool {
 				return !m.lessF(m.order[n], key, m.items[m.order[n]], oldVal)
 			})
-			m.order = append(m.order[:loc], m.order[loc+1:]...)
+			m.order = slices.Delete(m.order, loc, loc+1)
 		} else {
 			for i, v := range m.order {
 				if v == key {
-					m.order = append(m.order[:i], m.order[i+1:]...)
+					m.order = slices.Delete(m.order, i, i+1)
 					break
 				}
 			}
@@ -200,20 +208,24 @@ func (m *SliceMap[K, V]) GetKeyAt(position int) (key K) {
 	return
 }
 
-// Values returns a slice of the values in the order they were added or sorted.
+// Values returns a new slice of the values in the order they were added or sorted.
 func (m *SliceMap[K, V]) Values() (vals []V) {
 	if m == nil {
 		return
 	}
-	return m.items.Values()
+	values := make([]V, 0, len(m.order))
+	for _, k := range m.order {
+		values = append(values, m.items[k])
+	}
+	return values
 }
 
-// Keys returns the keys of the map, in the order they were added or sorted
+// Keys returns a new slice of the keys of the map, in the order they were added or sorted
 func (m *SliceMap[K, V]) Keys() (keys []K) {
 	if m == nil {
 		return
 	}
-	return m.items.Keys()
+	return slices.Clone(m.order)
 }
 
 // Len returns the number of items in the map
@@ -296,7 +308,17 @@ func (m *SliceMap[K, V]) UnmarshalJSON(data []byte) (err error) {
 }
 
 // Merge the given map into the current one.
+// Deprecated: use Copy instead.
 func (m *SliceMap[K, V]) Merge(in MapI[K, V]) {
+	in.Range(func(k K, v V) bool {
+		m.Set(k, v)
+		return true
+	})
+}
+
+// Copy copies the keys and values of in into the current one.
+// Duplicate keys will have the values replaced, but not the order.
+func (m *SliceMap[K, V]) Copy(in MapI[K, V]) {
 	in.Range(func(k K, v V) bool {
 		m.Set(k, v)
 		return true
@@ -354,36 +376,74 @@ func (m *SliceMap[K, V]) String() string {
 	return s
 }
 
-// Equaler is the interface that implements an Equal function and that provides a way for the
-// various MapI like objects to determine if they are equal.
-//
-// In particular, if your Map has
-// non-comparible values, like a slice, but you would still like to call Equal() on that
-// map, define an Equal function on the values to do the comparison. For example:
-//
-//	type mySlice []int
-//
-//	func (s mySlice) Equal(b any) bool {
-//		if s2, ok := b.(mySlice); ok {
-//			if len(s) == len(s2) {
-//				for i, v := range s2 {
-//					if s[i] != v {
-//						return false
-//					}
-//				}
-//				return true
-//			}
-//		}
-//		return false
-//	}
-type Equaler interface {
-	Equal(a any) bool
+// All returns an iterator over all the items in the map in the order they were entered or sorted.
+func (m *SliceMap[K, V]) All() iter.Seq2[K, V] {
+	return func(yield func(K, V) bool) {
+		m.Range(yield)
+	}
 }
 
-func equalValues(a, b any) bool {
-	if e, ok := a.(Equaler); ok {
-		return e.Equal(b)
+// KeysIter returns an iterator over all the keys in the map.
+func (m *SliceMap[K, V]) KeysIter() iter.Seq[K] {
+	return func(yield func(K) bool) {
+		if m == nil || m.items == nil {
+			return
+		}
+		for _, k := range m.order {
+			if !yield(k) {
+				break
+			}
+		}
 	}
+}
 
-	return a == b
+// ValuesIter returns an iterator over all the values in the map.
+func (m *SliceMap[K, V]) ValuesIter() iter.Seq[V] {
+	return func(yield func(V) bool) {
+		if m == nil || m.items == nil {
+			return
+		}
+		for _, k := range m.order {
+			if !yield(m.items[k]) {
+				break
+			}
+		}
+	}
+}
+
+// Insert adds the values from seq to the end of the map.
+// Duplicate keys are overridden but not moved.
+func (m *SliceMap[K, V]) Insert(seq iter.Seq2[K, V]) {
+	for k, v := range seq {
+		m.Set(k, v)
+	}
+}
+
+// CollectSliceMap collects key-value pairs from seq into a new SliceMap
+// and returns it.
+func CollectSliceMap[K comparable, V any](seq iter.Seq2[K, V]) *SliceMap[K, V] {
+	m := new(SliceMap[K, V])
+	m.Insert(seq)
+	return m
+}
+
+// Clone returns a copy of the SliceMap. This is a shallow clone of the keys and values:
+// the new keys and values are set using ordinary assignment. The order is preserved.
+func (m *SliceMap[K, V]) Clone() *SliceMap[K, V] {
+	m1 := new(SliceMap[K, V])
+	m1.items = m.items.Clone()
+	m1.order = slices.Clone(m.order)
+	m1.lessF = m.lessF
+	return m1
+}
+
+// DeleteFunc deletes any key/value pairs for which del returns true.
+// Items are ranged in order.
+func (m *SliceMap[K, V]) DeleteFunc(del func(K, V) bool) {
+	for i, k := range slices.Backward(m.order) {
+		if del(k, m.items[k]) {
+			m.items.Delete(k)
+			m.order = slices.Delete(m.order, i, i+1)
+		}
+	}
 }
