@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+	"iter"
+	"slices"
+	"strconv"
+	"testing"
 )
 
 type makeF func(sources ...mapT) MapI[string, int]
@@ -35,6 +37,11 @@ func runMapiTests[M any](t *testing.T, f makeF) {
 	testMarshalJSON(t, f)
 	testUnmarshalJSON[M](t, f)
 	testDelete(t, f)
+	testAll(t, f)
+	testKeysIter(t, f)
+	testValuesIter(t, f)
+	testInsert(t, f)
+	testDeleteFunc(t, f)
 }
 
 func testClear(t *testing.T, f makeF) {
@@ -257,4 +264,140 @@ func testDelete(t *testing.T, f makeF) {
 		v = m.Delete("b") // make sure deleting from an empty map is a no-op
 		assert.Equal(t, 0, v)
 	})
+}
+
+func testAll(t *testing.T, f makeF) {
+	t.Run("All", func(t *testing.T) {
+		m := f(mapT{"a": 1, "b": 2, "c": 3})
+
+		var actualKeys []string
+		var actualValues []int
+
+		for k, v := range m.All() {
+			actualKeys = append(actualKeys, k)
+			actualValues = append(actualValues, v)
+		}
+		slices.Sort(actualKeys)
+		slices.Sort(actualValues)
+
+		assert.Equal(t, []string{"a", "b", "c"}, actualKeys)
+		assert.Equal(t, []int{1, 2, 3}, actualValues)
+	})
+}
+
+// An iterator that prematurely stops at 2 items.
+func limit2[V any](s iter.Seq[V]) iter.Seq[V] {
+	return func(yield func(V) bool) {
+		count := 0
+		s(func(item V) bool {
+			count++
+			if !yield(item) {
+				return false
+			}
+			if count == 2 {
+				return false
+			}
+			return true
+		})
+	}
+}
+
+func testKeysIter(t *testing.T, f makeF) {
+	tests := []struct {
+		name string
+		m    mapTI
+		s    []string
+	}{
+		{"nil", f(), nil},
+		{"0", f(mapT{}), nil},
+		{"1", f(mapT{"a": 1}), []string{"a"}},
+		{"2", f(mapT{"a": 1, "b": 2}), []string{"a", "b"}},
+		{"3", f(mapT{"a": 1, "b": 2, "c": 3}), []string{"a", "b", "c"}},
+	}
+	for _, tt := range tests {
+		t.Run("KeysIter "+tt.name, func(t *testing.T) {
+			s := slices.Collect(tt.m.KeysIter())
+			slices.Sort(s)
+			assert.Equal(t, tt.s, s)
+		})
+	}
+
+	m := f(mapT{"a": 1, "b": 2, "c": 3})
+	s := slices.Collect(limit2(m.KeysIter()))
+	assert.Len(t, s, 2)
+}
+
+func testValuesIter(t *testing.T, f makeF) {
+	tests := []struct {
+		name string
+		m    mapTI
+		s    []int
+	}{
+		{"nil", f(), nil},
+		{"0", f(mapT{}), nil},
+		{"1", f(mapT{"a": 1}), []int{1}},
+		{"2", f(mapT{"a": 1, "b": 2}), []int{1, 2}},
+		{"3", f(mapT{"a": 1, "b": 2, "c": 3}), []int{1, 2, 3}},
+	}
+	for _, tt := range tests {
+		t.Run("ValuesIter "+tt.name, func(t *testing.T) {
+			s := slices.Collect(tt.m.ValuesIter())
+			slices.Sort(s)
+			assert.Equal(t, tt.s, s)
+		})
+	}
+
+	m := f(mapT{"a": 1, "b": 2, "c": 3})
+	s := slices.Collect(limit2(m.ValuesIter()))
+	assert.Len(t, s, 2)
+}
+
+func testInsert(t *testing.T, f makeF) {
+	t.Run("Insert", func(t *testing.T) {
+		m1 := mapT{"a": 1, "b": 2, "c": 3}
+		m2 := f(mapT{"a": 1})
+		m2.Insert(m1.All())
+		assert.True(t, m1.Equal(m2))
+	})
+}
+
+func testDeleteFunc(t *testing.T, f makeF) {
+	t.Run("DeleteFunc", func(t *testing.T) {
+		m1 := f(mapT{"a": 1, "b": 2, "c": 3})
+		m1.DeleteFunc(func(k string, v int) bool {
+			return v != 2
+		})
+		assert.Equal(t, 1, m1.Len())
+	})
+}
+
+func TestEqualFunc(t *testing.T) {
+	type testCase[K comparable, V1 any, V2 any] struct {
+		name string
+		m1   MapI[K, V1]
+		m2   MapI[K, V2]
+		want bool
+	}
+	tests := []testCase[string, int, string]{
+		{"Equal Maps", NewMap(StdMap[string, int]{"a": 1}), NewMap(StdMap[string, string]{"a": "1"}), true},
+		{"Unequal Keys", NewMap(StdMap[string, int]{"a": 1}), NewMap(StdMap[string, string]{"b": "1"}), false},
+		{"Unequal Values", NewMap(StdMap[string, int]{"a": 1}), NewMap(StdMap[string, string]{"a": "2"}), false},
+		{"Equal SafeMap", NewSafeMap(StdMap[string, int]{"a": 1}), NewMap(StdMap[string, string]{"a": "1"}), true},
+		{"Equal SliceMap", NewSliceMap(StdMap[string, int]{"a": 1}), NewMap(StdMap[string, string]{"a": "1"}), true},
+		{"Equal SafeSliceMap", NewSafeSliceMap(StdMap[string, int]{"a": 1}), NewMap(StdMap[string, string]{"a": "1"}), true},
+		{"Equal SafeSliceMap 2", NewMap(StdMap[string, int]{"a": 1}), NewSafeSliceMap(StdMap[string, string]{"a": "1"}), true},
+		{"Equal Empty Map", NewMap(StdMap[string, int]{}), NewMap(StdMap[string, string]{}), true},
+		{"Equal Empty SafeSliceMap", NewSafeSliceMap(StdMap[string, int]{}), NewMap(StdMap[string, string]{}), true},
+		{"Unequal Empty Map", NewSafeSliceMap(StdMap[string, int]{}), NewMap(StdMap[string, string]{"a": "1"}), false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equalf(t, tt.want, EqualFunc(tt.m1, tt.m2, isEqual), "EqualFunc(%v, %v)", tt.m1.String(), tt.m2.String())
+		})
+	}
+}
+
+func isEqual(i int, s string) bool {
+	i2, _ := strconv.Atoi(s)
+	return i == i2
 }

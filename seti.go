@@ -1,5 +1,7 @@
 package maps
 
+import "iter"
+
 // SetI is the interface used by all the Set types.
 type SetI[K comparable] interface {
 	Add(k ...K) SetI[K]
@@ -11,4 +13,8 @@ type SetI[K comparable] interface {
 	Merge(SetI[K])
 	Equal(SetI[K]) bool
 	Delete(k K)
+	All() iter.Seq[K]
+	Insert(seq iter.Seq[K])
+	Clone() *Set[K]
+	DeleteFunc(del func(K) bool)
 }

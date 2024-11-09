@@ -5,9 +5,11 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
+	"iter"
+	"slices"
 )
 
-// Set is a collection the keeps track of membership.
+// Set is a collection that keeps track of membership.
 //
 // The recommended way to create a Set is to first declare a concrete type alias, and then call
 // new on it, like this:
@@ -19,6 +21,14 @@ import (
 // This will allow you to swap in a different kind of Set just by changing the type.
 type Set[K comparable] struct {
 	items StdMap[K, struct{}]
+}
+
+func NewSet[K comparable](values ...K) *Set[K] {
+	s := new(Set[K])
+	for _, k := range values {
+		s.Add(k)
+	}
+	return s
 }
 
 // Clear resets the set to an empty set
@@ -74,11 +84,14 @@ func (m *Set[K]) Add(k ...K) SetI[K] {
 }
 
 // Merge adds the values from the given set to the set.
+// Deprecated: Call Copy instead.
 func (m *Set[K]) Merge(in SetI[K]) {
-	if m == nil {
-		panic("cannot merge into a nil set")
-	}
-	if in == nil {
+	m.Copy(in)
+}
+
+// Copy adds the values from in to the set.
+func (m *Set[K]) Copy(in SetI[K]) {
+	if in == nil || in.Len() == 0 {
 		return
 	}
 	if m.items == nil {
@@ -150,10 +163,11 @@ func (m *Set[K]) UnmarshalJSON(in []byte) (err error) {
 	return
 }
 
-// String returns the set as a string.
+// String returns the set as a string in a predictable way.
 func (m *Set[K]) String() string {
+	vals := slices.Clone(m.Values())
 	ret := "{"
-	for i, v := range m.Values() {
+	for i, v := range vals {
 		ret += fmt.Sprintf("%#v", v)
 		if i < m.Len()-1 {
 			ret += ","
@@ -161,4 +175,45 @@ func (m *Set[K]) String() string {
 	}
 	ret += "}"
 	return ret
+}
+
+// All returns an iterator over all the items in the set. Order is not determinate.
+func (m *Set[K]) All() iter.Seq[K] {
+	return m.items.KeysIter()
+}
+
+// Insert adds the values from seq to the map.
+// Duplicates are overridden.
+func (m *Set[K]) Insert(seq iter.Seq[K]) {
+	if m.items == nil {
+		m.items = NewStdMap[K, struct{}]()
+	}
+
+	for k := range seq {
+		m.Add(k)
+	}
+}
+
+// CollectSet collects values from seq into a new Set
+// and returns it.
+func CollectSet[K comparable](seq iter.Seq[K]) *Set[K] {
+	m := NewSet[K]()
+	m.Insert(seq)
+	return m
+}
+
+// Clone returns a copy of the Set. This is a shallow clone:
+// the new keys and values are set using ordinary assignment.
+func (m *Set[K]) Clone() *Set[K] {
+	m1 := NewSet[K]()
+	m1.items = m.items.Clone()
+	return m1
+}
+
+// DeleteFunc deletes any values for which del returns true.
+func (m *Set[K]) DeleteFunc(del func(K) bool) {
+	del2 := func(k K, s struct{}) bool {
+		return del(k)
+	}
+	m.items.DeleteFunc(del2)
 }

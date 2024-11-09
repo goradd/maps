@@ -10,6 +10,8 @@ different kinds of maps.
 Using the same interface, you can create and use a standard Go map, a map
 that is safe for concurrency and/or a map that lets you order the keys in the map.
 
+A Set class is included for quickly determining membership in a group.
+
 ## Example
 
 ```go
@@ -24,14 +26,13 @@ type myStdMap = StdMap[string, int]
 func main() {
 	m := new(Map[string, int])
 	
-	m.Merge(myStdMap{"b":2, "c":3})
+	m.Copy(myStdMap{"b":2, "c":3})
 	m.Set("a",1)
 
 	sum := 0
-	m.Range(func(k string, v int) bool {
+	for v := range m.All() {
 		sum += v
-		return true
-    })
+    }
 	fmt.Print(sum)
 }
 
