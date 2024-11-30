@@ -186,6 +186,10 @@ func (m *SafeSliceMap[K, V]) Copy(in MapI[K, V]) {
 // Range will call the given function with every key and value in the order
 // they were placed in the map, or in if you sorted the map, in your custom order.
 // If f returns false, it stops the iteration. This pattern is taken from sync.Map.
+// During this process, the map will be locked, so do not pass a function that will take
+// significant amounts of time, nor will call into other methods of the SafeSliceMap which might also need a lock.
+// The workaround is to call Keys() and iterate over the returned copy of the keys, but making sure
+// your function can handle the situation where the key no longer exists in the slice.
 func (m *SafeSliceMap[K, V]) Range(f func(key K, value V) bool) {
 	if m == nil || m.sm.items == nil { // prevent unnecessary lock
 		return
@@ -236,6 +240,8 @@ func (m *SafeSliceMap[K, V]) All() iter.Seq2[K, V] {
 }
 
 // KeysIter returns an iterator over all the keys in the map.
+// During this process, the map will be locked, so do not pass a function that will take
+// significant amounts of time, nor will call into other methods of the SafeSliceMap which might also need a lock.
 func (m *SafeSliceMap[K, V]) KeysIter() iter.Seq[K] {
 	return func(yield func(K) bool) {
 		if m == nil || m.sm.items == nil {
@@ -248,6 +254,8 @@ func (m *SafeSliceMap[K, V]) KeysIter() iter.Seq[K] {
 }
 
 // ValuesIter returns an iterator over all the values in the map.
+// During this process, the map will be locked, so do not pass a function that will take
+// significant amounts of time, nor will call into other methods of the SafeSliceMap which might also need a lock.
 func (m *SafeSliceMap[K, V]) ValuesIter() iter.Seq[V] {
 	return func(yield func(V) bool) {
 		if m == nil || m.sm.items == nil {

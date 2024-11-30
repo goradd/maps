@@ -197,6 +197,8 @@ func (m *SafeMap[K, V]) String() string {
 }
 
 // All returns an iterator over all the items in the map.
+// This will lock the map, so care must be taken that the iterator
+// does not call back functions in SafeMap which will also require a lock.
 func (m *SafeMap[K, V]) All() iter.Seq2[K, V] {
 	return func(yield func(K, V) bool) {
 		m.Range(yield)
@@ -204,6 +206,8 @@ func (m *SafeMap[K, V]) All() iter.Seq2[K, V] {
 }
 
 // KeysIter returns an iterator over all the keys in the map.
+// This will lock the map, so care must be taken that the iterator
+// does not call back functions in SafeMap which will also require a lock.
 func (m *SafeMap[K, V]) KeysIter() iter.Seq[K] {
 	return func(yield func(K) bool) {
 		if m.items == nil {
@@ -220,6 +224,8 @@ func (m *SafeMap[K, V]) KeysIter() iter.Seq[K] {
 }
 
 // ValuesIter returns an iterator over all the values in the map.
+// During this process, the map will be locked, so care must be taken that iterator will
+// not attempt to call other functions in SafeMap which also need a lock.
 func (m *SafeMap[K, V]) ValuesIter() iter.Seq[V] {
 	return func(yield func(V) bool) {
 		if m.items == nil {
