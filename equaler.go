@@ -4,7 +4,7 @@ package maps
 // various MapI like objects to determine if they are equal.
 //
 // In particular, if your Map has
-// non-comparible values, like a slice, but you would still like to call Equal() on that
+// non-comparable values, like a slice, but you would still like to call Equal() on that
 // map, define an Equal function on the values to do the comparison. For example:
 //
 //	type mySlice []int

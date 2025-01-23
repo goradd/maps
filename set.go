@@ -148,6 +148,9 @@ func (m *Set[K]) UnmarshalBinary(data []byte) (err error) {
 
 // MarshalJSON implements the json.Marshaler interface to convert the map into a JSON object.
 func (m *Set[K]) MarshalJSON() (out []byte, err error) {
+	if m.Len() == 0 {
+		return []byte("[]"), nil
+	}
 	return json.Marshal(m.Values())
 }
 
@@ -163,7 +166,7 @@ func (m *Set[K]) UnmarshalJSON(in []byte) (err error) {
 	return
 }
 
-// String returns the set as a string in a predictable way.
+// String returns the set as a string.
 func (m *Set[K]) String() string {
 	vals := slices.Clone(m.Values())
 	ret := "{"

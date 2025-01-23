@@ -103,28 +103,25 @@ func testSetHas(t *testing.T, f makeSetF) {
 
 func testSetRange(t *testing.T, f makeSetF) {
 	tests := []struct {
-		name     string
-		m        setTI
-		expected int
+		name        string
+		m           setTI
+		expectedLen int
 	}{
-		{"0", f(), 0},
-		{"1", f("a"), 1},
-		{"2", f("a", "b"), 2},
-		{"3", f("a", "b", "c"), 2},
+		{"none", f(), 0},
+		{"one", f("a"), 1},
+		{"three", f("b", "a", "c"), 3},
+		{"four", f("d", "a", "c", "b"), 3},
 	}
 	for _, tt := range tests {
 		t.Run("Range "+tt.name, func(t *testing.T) {
-			count := 0
-			tt.m.Range(func(k string) bool {
+			var values []string
+			var count int
+			tt.m.Range(func(i string) bool {
+				values = append(values, i)
 				count++
-				if count > 1 {
-					return false
-				}
-				return true
+				return count < 3
 			})
-			if count != tt.expected {
-				t.Errorf("Expected %d, got %d", tt.expected, count)
-			}
+			assert.Equal(t, tt.expectedLen, len(values))
 		})
 	}
 }
@@ -199,6 +196,13 @@ func testSetMarshalJSON(t *testing.T, f makeSetF) {
 		assert.NoError(t, err)
 		// Note: The below output is what is produced, but isn't guaranteed. go seems to currently be sorting keys
 		assert.Contains(t, string(s), `"a"`)
+
+		m = f()
+		s, err = json.Marshal(m)
+		assert.NoError(t, err)
+		// Note: The below output is what is produced, but isn't guaranteed. go seems to currently be sorting keys
+		assert.Equal(t, string(s), "[]")
+
 	})
 }
 
@@ -212,6 +216,26 @@ func testSetUnmarshalJSON[M any](t *testing.T, f makeSetF) {
 	m2 := i.(SetI[string])
 
 	assert.True(t, m2.Has("c"))
+
+	b = []byte(`[]`)
+
+	var m3 M
+
+	json.Unmarshal(b, &m3)
+	i = &m3
+	m4 := i.(SetI[string])
+
+	assert.Equal(t, 0, m4.Len())
+
+	b = []byte(`["d"]`)
+
+	// Unmarshalling into an existing set should add values
+	json.Unmarshal(b, &m)
+	i = &m
+	m5 := i.(SetI[string])
+
+	assert.Equal(t, 4, m5.Len())
+
 }
 
 func testSetDelete(t *testing.T, f makeSetF) {
