@@ -58,3 +58,18 @@ func (m *OrderedSet[K]) All() iter.Seq[K] {
 	v := m.Values()
 	return slices.Values(v)
 }
+
+// Clone returns a copy of the Set. This is a shallow clone:
+// the new keys and values are set using ordinary assignment.
+func (m *OrderedSet[K]) Clone() *OrderedSet[K] {
+	m1 := NewOrderedSet[K]()
+	m1.items = m.items.Clone()
+	return m1
+}
+
+// Add adds the value to the set.
+// If the value already exists, nothing changes.
+func (m *OrderedSet[K]) Add(k ...K) SetI[K] {
+	m.Set.Add(k...)
+	return m
+}

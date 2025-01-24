@@ -24,16 +24,14 @@ type myMap = Map[string,int] // the equal sign here is critical!
 type myStdMap = StdMap[string, int]
 
 func main() {
-	m := new(Map[string, int])
-	
-	m.Copy(myStdMap{"b":2, "c":3})
-	m.Set("a",1)
-
-	sum := 0
-	for v := range m.All() {
-		sum += v
-    }
-	fmt.Print(sum)
+  m := new(Map[string, int])
+  m.Copy(myStdMap{"b":2, "c":3})
+  m.Set("a",1)
+  sum := 0
+  for v := range m.All() {
+    sum += v
+  }
+  fmt.Print(sum)
 }
 
 ```

@@ -101,3 +101,12 @@ func TestOrderedSet_Range(t *testing.T) {
 		})
 	}
 }
+
+func TestOrderedSet_Clone(t *testing.T) {
+	m1 := NewOrderedSet("a", "b", "c")
+	m2 := m1.Clone()
+	assert.True(t, m1.Equal(m2))
+
+	m2.Add("d")
+	assert.False(t, m1.Equal(m2))
+}
