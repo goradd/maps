@@ -15,6 +15,5 @@ type SetI[K comparable] interface {
 	Delete(k K)
 	All() iter.Seq[K]
 	Insert(seq iter.Seq[K])
-	Clone() *Set[K]
 	DeleteFunc(del func(K) bool)
 }
