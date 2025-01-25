@@ -3,7 +3,9 @@ package maps
 import (
 	"cmp"
 	"encoding/gob"
+	"fmt"
 	"github.com/stretchr/testify/assert"
+	"slices"
 	"testing"
 )
 
@@ -11,11 +13,11 @@ type orderedSetT = OrderedSet[string]
 type orderedSetTI = SetI[string]
 
 func TestOrderedSet_SetI(t *testing.T) {
-	runSetITests[OrderedSet[string]](t, makeSetI[OrderedSet[string]])
+	runSetITests[orderedSetT](t, makeSetI[orderedSetT])
 }
 
 func init() {
-	gob.Register(new(OrderedSet[string]))
+	gob.Register(new(orderedSetT))
 }
 
 func TestOrderedSet_Values(t *testing.T) {
@@ -58,7 +60,7 @@ func TestOrderedSet_MarshalJSON(t *testing.T) {
 	}
 }
 
-func TestOrderedSetAll(t *testing.T) {
+func TestOrderedSet_All(t *testing.T) {
 	set := NewOrderedSet[int]()
 	set.Add(5)
 	set.Add(3)
@@ -107,6 +109,54 @@ func TestOrderedSet_Clone(t *testing.T) {
 	m2 := m1.Clone()
 	assert.True(t, m1.Equal(m2))
 
+	var m3 *OrderedSet[string]
+	m4 := m3.Clone()
+	m3.Equal(m4)
+	assert.True(t, m3.Equal(m4))
+
 	m2.Add("d")
 	assert.False(t, m1.Equal(m2))
+}
+
+func TestOrderedSet_Nil(t *testing.T) {
+	t.Run("Nil", func(t *testing.T) {
+		var m1, m2 *OrderedSet[string]
+
+		assert.Equal(t, 0, m1.Len())
+		m1.Clear()
+		assert.True(t, m1.Equal(m2))
+		m3 := m2.Clone()
+		assert.True(t, m1.Equal(m3))
+		m3.Add("a")
+		assert.False(t, m1.Equal(m3))
+		m1.Range(func(k string) bool {
+			assert.Fail(t, "no range should happen")
+			return false
+		})
+		assert.False(t, m1.Has("b"))
+		m1.Delete("a")
+		assert.Empty(t, m1.Values())
+		assert.Equal(t, "{}", m1.String())
+		m1.DeleteFunc(func(k string) bool {
+			return false
+		})
+		for _ = range m1.All() {
+			assert.Fail(t, "no range should happen")
+		}
+		assert.Panics(t, func() {
+			m1.Insert(slices.Values([]string{"a"}))
+		})
+		assert.Panics(t, func() {
+			m1.Add("a")
+		})
+		assert.Panics(t, func() {
+			m1.Copy(m2)
+		})
+	})
+}
+
+func ExampleOrderedSet_String() {
+	m := NewOrderedSet("a", "c", "a", "b")
+	fmt.Print(m.String())
+	// Output: {"a","b","c"}
 }

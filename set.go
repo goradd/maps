@@ -32,11 +32,17 @@ func NewSet[K comparable](values ...K) *Set[K] {
 
 // Clear resets the set to an empty set
 func (m *Set[K]) Clear() {
+	if m == nil {
+		return
+	}
 	m.items = nil
 }
 
 // Len returns the number of items in the set
 func (m *Set[K]) Len() int {
+	if m == nil || m.items == nil {
+		return 0
+	}
 	return m.items.Len()
 }
 
@@ -45,7 +51,7 @@ func (m *Set[K]) Len() int {
 // While its safe to call methods of the set from within the Range function, its discouraged.
 // If you ever switch to one of the SafeSet sets, it will cause a deadlock.
 func (m *Set[K]) Range(f func(k K) bool) {
-	if m == nil || m.items == nil {
+	if m.Len() == 0 {
 		return
 	}
 	for k := range m.items {
@@ -57,22 +63,34 @@ func (m *Set[K]) Range(f func(k K) bool) {
 
 // Has returns true if the value exists in the set.
 func (m *Set[K]) Has(k K) bool {
+	if m.Len() == 0 {
+		return false
+	}
 	return m.items.Has(k)
 }
 
 // Delete removes the value from the set. If the value does not exist, nothing happens.
 func (m *Set[K]) Delete(k K) {
+	if m.Len() == 0 {
+		return
+	}
 	m.items.Delete(k)
 }
 
 // Values returns a new slice containing the values of the set.
 func (m *Set[K]) Values() []K {
+	if m.Len() == 0 {
+		return nil
+	}
 	return m.items.Keys()
 }
 
 // Add adds the value to the set.
 // If the value already exists, nothing changes.
 func (m *Set[K]) Add(k ...K) SetI[K] {
+	if m == nil {
+		panic("cannot add values to a nil Set")
+	}
 	if m.items == nil {
 		m.items = make(map[K]struct{})
 	}
@@ -90,6 +108,9 @@ func (m *Set[K]) Merge(in SetI[K]) {
 
 // Copy adds the values from in to the set.
 func (m *Set[K]) Copy(in SetI[K]) {
+	if m == nil {
+		panic("cannot copy to a nil Set")
+	}
 	if in == nil || in.Len() == 0 {
 		return
 	}
@@ -104,6 +125,9 @@ func (m *Set[K]) Copy(in SetI[K]) {
 
 // Equal returns true if the two sets are the same length and contain the same values.
 func (m *Set[K]) Equal(m2 SetI[K]) bool {
+	if m == nil {
+		return m2.Len() == 0
+	}
 	if m.Len() != m2.Len() {
 		return false
 	}
@@ -168,10 +192,12 @@ func (m *Set[K]) UnmarshalJSON(in []byte) (err error) {
 // String returns the set as a string.
 func (m *Set[K]) String() string {
 	ret := "{"
-	for i, v := range m.Values() {
-		ret += fmt.Sprintf("%#v", v)
-		if i < m.Len()-1 {
-			ret += ","
+	if m.Len() != 0 {
+		for i, v := range m.Values() {
+			ret += fmt.Sprintf("%#v", v)
+			if i < m.Len()-1 {
+				ret += ","
+			}
 		}
 	}
 	ret += "}"
@@ -180,12 +206,20 @@ func (m *Set[K]) String() string {
 
 // All returns an iterator over all the items in the set. Order is not determinate.
 func (m *Set[K]) All() iter.Seq[K] {
+	if m.Len() == 0 {
+		return func(yield func(K) bool) {
+			return
+		}
+	}
 	return m.items.KeysIter()
 }
 
 // Insert adds the values from seq to the map.
 // Duplicates are overridden.
 func (m *Set[K]) Insert(seq iter.Seq[K]) {
+	if m == nil {
+		panic("cannot insert into a nil Set")
+	}
 	if m.items == nil {
 		m.items = NewStdMap[K, struct{}]()
 	}
@@ -207,12 +241,17 @@ func CollectSet[K comparable](seq iter.Seq[K]) *Set[K] {
 // the new keys and values are set using ordinary assignment.
 func (m *Set[K]) Clone() *Set[K] {
 	m1 := NewSet[K]()
-	m1.items = m.items.Clone()
+	if m.Len() != 0 {
+		m1.items = m.items.Clone()
+	}
 	return m1
 }
 
 // DeleteFunc deletes any values for which del returns true.
 func (m *Set[K]) DeleteFunc(del func(K) bool) {
+	if m.Len() == 0 {
+		return
+	}
 	del2 := func(k K, s struct{}) bool {
 		return del(k)
 	}

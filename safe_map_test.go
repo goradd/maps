@@ -16,7 +16,7 @@ func init() {
 	gob.Register(new(SafeMap[string, int]))
 }
 
-func TestNil(t *testing.T) {
+func TestSafeMap_Nil(t *testing.T) {
 	var m SafeMap[string, int]
 
 	assert.False(t, m.Has("z"))

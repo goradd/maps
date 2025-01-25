@@ -37,6 +37,7 @@ func runSetITests[M any](t *testing.T, f makeSetF) {
 	testSetAll(t, f)
 	testSetInsert(t, f)
 	testSetDeleteFunc(t, f)
+	testSetCopy(t, f)
 }
 
 func testSetClear(t *testing.T, f makeSetF) {
@@ -201,8 +202,7 @@ func testSetMarshalJSON(t *testing.T, f makeSetF) {
 		s, err = json.Marshal(m)
 		assert.NoError(t, err)
 		// Note: The below output is what is produced, but isn't guaranteed. go seems to currently be sorting keys
-		assert.Equal(t, string(s), "[]")
-
+		assert.Equal(t, "[]", string(s))
 	})
 }
 
@@ -284,5 +284,14 @@ func testSetDeleteFunc(t *testing.T, f makeSetF) {
 			return k != "b"
 		})
 		assert.Equal(t, 1, m1.Len())
+	})
+}
+
+func testSetCopy(t *testing.T, f makeSetF) {
+	t.Run("DeleteFunc", func(t *testing.T) {
+		m1 := f("a", "b", "c")
+		m2 := f()
+		m2.Copy(m1)
+		assert.True(t, m1.Equal(m2))
 	})
 }
