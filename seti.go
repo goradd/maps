@@ -7,6 +7,7 @@ type SetI[K comparable] interface {
 	Add(k ...K) SetI[K]
 	Clear()
 	Len() int
+	Copy(in SetI[K])
 	Range(func(k K) bool)
 	Has(k K) bool
 	Values() []K
@@ -15,6 +16,5 @@ type SetI[K comparable] interface {
 	Delete(k K)
 	All() iter.Seq[K]
 	Insert(seq iter.Seq[K])
-	Clone() *Set[K]
 	DeleteFunc(del func(K) bool)
 }
