@@ -189,7 +189,7 @@ func (m *Set[K]) UnmarshalJSON(in []byte) (err error) {
 	return
 }
 
-// String returns the set as a string in a predictable way.
+// String returns the set as a string.
 func (m *Set[K]) String() string {
 	ret := "{"
 	if m.Len() != 0 {
