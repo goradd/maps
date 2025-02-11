@@ -11,6 +11,7 @@ type SetI[K comparable] interface {
 	Range(func(k K) bool)
 	Has(k K) bool
 	Values() []K
+	// Deprecated: use Copy instead
 	Merge(SetI[K])
 	Equal(SetI[K]) bool
 	Delete(k K)
