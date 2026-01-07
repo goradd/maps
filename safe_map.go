@@ -215,7 +215,7 @@ func (m *SafeMap[K, V]) KeysIter() iter.Seq[K] {
 		}
 		m.RLock()
 		defer m.RUnlock()
-		for k, _ := range m.items {
+		for k := range m.items {
 			if !yield(k) {
 				break
 			}
