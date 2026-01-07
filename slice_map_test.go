@@ -217,3 +217,10 @@ func TestCollectSliceMap(t *testing.T) {
 	expectedKeys := []string{"b", "a", "c"}
 	assert.Equal(t, keys, expectedKeys)
 }
+
+// testing set with value-based SliceMap
+func TestSliceMap_Set(t *testing.T) {
+	var s SliceMap[string, int]
+	s.Set("b", 2)
+	assert.Equal(t, 2, s.Get("b"))
+}

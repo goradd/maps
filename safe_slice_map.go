@@ -28,7 +28,7 @@ import (
 //
 // Do not make a copy of a SafeSliceMap using the equality operator. Use Clone() instead.
 type SafeSliceMap[K comparable, V any] struct {
-	sync.RWMutex
+	mu sync.RWMutex
 	sm SliceMap[K, V]
 }
 
@@ -47,8 +47,8 @@ func NewSafeSliceMap[K comparable, V any](sources ...map[K]V) *SafeSliceMap[K, V
 // The sort function is a Less function, that returns true when item 1 is "less" than item 2.
 // The sort function receives both the keys and values, so it can use either or both to decide how to sort.
 func (m *SafeSliceMap[K, V]) SetSortFunc(f func(key1, key2 K, val1, val2 V) bool) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.sm.SetSortFunc(f)
 }
 
@@ -57,8 +57,8 @@ func (m *SafeSliceMap[K, V]) SetSortFunc(f func(key1, key2 K, val1, val2 V) bool
 // If the key already exists, the range order will not change. If you want the order
 // to change, call Delete first, and then Set.
 func (m *SafeSliceMap[K, V]) Set(key K, val V) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.sm.Set(key, val)
 }
 
@@ -66,72 +66,72 @@ func (m *SafeSliceMap[K, V]) Set(key K, val V) {
 // If the index is bigger than
 // the length, it puts it at the end. Negative indexes are backwards from the end.
 func (m *SafeSliceMap[K, V]) SetAt(index int, key K, val V) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.sm.SetAt(index, key, val)
 }
 
 // Delete removes the item with the given key and returns the value.
 func (m *SafeSliceMap[K, V]) Delete(key K) (val V) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.sm.Delete(key)
 }
 
 // Get returns the value based on its key. If the key does not exist, an empty value is returned.
 func (m *SafeSliceMap[K, V]) Get(key K) (val V) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Get(key)
 }
 
 // Load returns the value based on its key, and a boolean indicating whether it exists in the map.
 // This is the same interface as sync.Map.Load()
 func (m *SafeSliceMap[K, V]) Load(key K) (val V, ok bool) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Load(key)
 }
 
 // Has returns true if the given key exists in the map.
 func (m *SafeSliceMap[K, V]) Has(key K) (ok bool) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Has(key)
 }
 
 // GetAt returns the value based on its position. If the position is out of bounds, an empty value is returned.
 func (m *SafeSliceMap[K, V]) GetAt(position int) (val V) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.GetAt(position)
 }
 
 // GetKeyAt returns the key based on its position. If the position is out of bounds, an empty value is returned.
 func (m *SafeSliceMap[K, V]) GetKeyAt(position int) (key K) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.GetKeyAt(position)
 }
 
 // Values returns a slice of the values in the order they were added or sorted.
 func (m *SafeSliceMap[K, V]) Values() (values []V) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Values()
 }
 
 // Keys returns the keys of the map, in the order they were added or sorted.
 func (m *SafeSliceMap[K, V]) Keys() (keys []K) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Keys()
 }
 
 // Len returns the number of items in the map.
 func (m *SafeSliceMap[K, V]) Len() int {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Len()
 }
 
@@ -139,23 +139,23 @@ func (m *SafeSliceMap[K, V]) Len() int {
 // If you are using a sort function, you must save and restore the sort function in a separate operation
 // since functions are not serializable.
 func (m *SafeSliceMap[K, V]) MarshalBinary() (data []byte, err error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.MarshalBinary()
 }
 
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a
 // SafeSliceMap.
 func (m *SafeSliceMap[K, V]) UnmarshalBinary(data []byte) (err error) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.sm.UnmarshalBinary(data)
 }
 
 // MarshalJSON implements the json.Marshaler interface to convert the map into a JSON object.
 func (m *SafeSliceMap[K, V]) MarshalJSON() (data []byte, err error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 
 	// Json objects are unordered
 	return m.sm.MarshalJSON()
@@ -164,8 +164,8 @@ func (m *SafeSliceMap[K, V]) MarshalJSON() (data []byte, err error) {
 // UnmarshalJSON implements the json.Unmarshaler interface to convert a json object to a Map.
 // The JSON must start with an object.
 func (m *SafeSliceMap[K, V]) UnmarshalJSON(data []byte) (err error) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.sm.UnmarshalJSON(data)
 }
 
@@ -194,8 +194,8 @@ func (m *SafeSliceMap[K, V]) Range(f func(key K, value V) bool) {
 	if m == nil || m.sm.items == nil { // prevent unnecessary lock
 		return
 	}
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	m.sm.Range(f)
 }
 
@@ -204,16 +204,16 @@ func (m *SafeSliceMap[K, V]) Range(f func(key K, value V) bool) {
 // If the values are not comparable, you should implement the Equaler interface on the values.
 // Otherwise, you will get a runtime panic.
 func (m *SafeSliceMap[K, V]) Equal(m2 MapI[K, V]) bool {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.sm.Equal(m2)
 }
 
 // Clear removes all the items in the map.
 func (m *SafeSliceMap[K, V]) Clear() {
-	m.Lock()
+	m.mu.Lock()
 	m.sm.Clear()
-	m.Unlock()
+	m.mu.Unlock()
 }
 
 // String outputs the map as a string.
@@ -247,8 +247,8 @@ func (m *SafeSliceMap[K, V]) KeysIter() iter.Seq[K] {
 		if m == nil || m.sm.items == nil {
 			return
 		}
-		m.RLock()
-		defer m.RUnlock()
+		m.mu.RLock()
+		defer m.mu.RUnlock()
 		m.sm.KeysIter()(yield)
 	}
 }
@@ -261,8 +261,8 @@ func (m *SafeSliceMap[K, V]) ValuesIter() iter.Seq[V] {
 		if m == nil || m.sm.items == nil {
 			return
 		}
-		m.RLock()
-		defer m.RUnlock()
+		m.mu.RLock()
+		defer m.mu.RUnlock()
 		m.sm.ValuesIter()(yield)
 	}
 }
@@ -292,8 +292,8 @@ func CollectSafeSliceMap[K comparable, V any](seq iter.Seq2[K, V]) *SafeSliceMap
 // the new keys and values are set using ordinary assignment. The order is preserved.
 func (m *SafeSliceMap[K, V]) Clone() *SafeSliceMap[K, V] {
 	m1 := new(SafeSliceMap[K, V])
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	m1.sm.items = m.sm.items.Clone()
 	m1.sm.order = slices.Clone(m.sm.order)
 	m1.sm.lessF = m.sm.lessF
@@ -305,7 +305,7 @@ func (m *SafeSliceMap[K, V]) Clone() *SafeSliceMap[K, V] {
 // This function locks the entire slice structure for the entirety of the call,
 // so be careful to avoid deadlocks when calling this on a very big structure.
 func (m *SafeSliceMap[K, V]) DeleteFunc(del func(K, V) bool) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.sm.DeleteFunc(del)
 }

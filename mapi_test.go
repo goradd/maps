@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
-	"github.com/stretchr/testify/assert"
 	"iter"
 	"slices"
 	"strconv"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type makeF func(sources ...mapT) MapI[string, int]
@@ -18,7 +19,7 @@ func makeMapi[M any](sources ...mapT) MapI[string, int] {
 	m = new(M)
 	i := m.(MapI[string, int])
 	for _, s := range sources {
-		i.Merge(s)
+		i.Copy(s)
 	}
 	return i
 }
@@ -26,7 +27,7 @@ func makeMapi[M any](sources ...mapT) MapI[string, int] {
 func runMapiTests[M any](t *testing.T, f makeF) {
 	testClear(t, f)
 	testLen(t, f)
-	testMerge(t, f)
+	testCopy(t, f)
 	testGetHasLoad(t, f)
 	testRange(t, f)
 	testSet(t, f)
@@ -69,7 +70,7 @@ func testLen(t *testing.T, f makeF) {
 	assert.Equal(t, 2, f(mapT{"a": 1, "b": 2}).Len())
 }
 
-func testMerge(t *testing.T, f makeF) {
+func testCopy(t *testing.T, f makeF) {
 	tests := []struct {
 		name     string
 		m1       mapTI
@@ -84,8 +85,8 @@ func testMerge(t *testing.T, f makeF) {
 		{"from cast map", f(mapT{"a": 1}), Cast(map[string]int{"b": 2}), mapT{"a": 1, "b": 2}},
 	}
 	for _, tt := range tests {
-		t.Run("Merge "+tt.name, func(t *testing.T) {
-			tt.m1.Merge(tt.m2)
+		t.Run("Copy "+tt.name, func(t *testing.T) {
+			tt.m1.Copy(tt.m2)
 			if !tt.m1.Equal(tt.expected) {
 				t.Errorf("Merge error. Expected: %q, got %q", tt.expected, tt.m1)
 			}
