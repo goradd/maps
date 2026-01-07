@@ -19,7 +19,7 @@ import (
 //
 // Do not make a copy of a SafeMap using the equality operator (=). Use Clone instead.
 type SafeMap[K comparable, V any] struct {
-	sync.RWMutex
+	mu    sync.RWMutex
 	items StdMap[K, V]
 }
 
@@ -38,20 +38,20 @@ func (m *SafeMap[K, V]) Clear() {
 	if m.items == nil {
 		return
 	}
-	m.Lock()
+	m.mu.Lock()
 	m.items = nil
-	m.Unlock()
+	m.mu.Unlock()
 }
 
 // Set sets the key to the given value.
 func (m *SafeMap[K, V]) Set(k K, v V) {
-	m.Lock()
+	m.mu.Lock()
 	if m.items == nil {
 		m.items = map[K]V{k: v}
 	} else {
 		m.items[k] = v
 	}
-	m.Unlock()
+	m.mu.Unlock()
 }
 
 // Get returns the value based on its key. If it does not exist, an empty string will be returned.
@@ -72,19 +72,19 @@ func (m *SafeMap[K, V]) Load(k K) (v V, ok bool) {
 	if m.items == nil {
 		return
 	}
-	m.RLock()
+	m.mu.RLock()
 	if m.items != nil {
 		v, ok = m.items[k]
 	}
-	m.RUnlock()
+	m.mu.RUnlock()
 	return
 }
 
 // Delete removes the key from the map and returns the value. If the key does not exist, the zero value will be returned.
 func (m *SafeMap[K, V]) Delete(k K) (v V) {
-	m.Lock()
+	m.mu.Lock()
 	v = m.items.Delete(k)
-	m.Unlock()
+	m.mu.Unlock()
 	return
 }
 
@@ -94,9 +94,9 @@ func (m *SafeMap[K, V]) Values() (v []V) {
 	if m.items == nil {
 		return
 	}
-	m.RLock()
+	m.mu.RLock()
 	v = m.items.Values()
-	m.RUnlock()
+	m.mu.RUnlock()
 	return
 }
 
@@ -106,9 +106,9 @@ func (m *SafeMap[K, V]) Keys() (keys []K) {
 	if m.items == nil {
 		return nil
 	}
-	m.RLock()
+	m.mu.RLock()
 	keys = m.items.Keys()
-	m.RUnlock()
+	m.mu.RUnlock()
 	return
 }
 
@@ -117,9 +117,9 @@ func (m *SafeMap[K, V]) Len() (l int) {
 	if m.items == nil {
 		return
 	}
-	m.RLock()
+	m.mu.RLock()
 	l = m.items.Len()
-	m.RUnlock()
+	m.mu.RUnlock()
 	return
 }
 
@@ -131,8 +131,8 @@ func (m *SafeMap[K, V]) Range(f func(k K, v V) bool) {
 	if m == nil || m.items == nil {
 		return
 	}
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	m.items.Range(f)
 }
 
@@ -147,52 +147,52 @@ func (m *SafeMap[K, V]) Copy(in MapI[K, V]) {
 	if m.items == nil {
 		m.items = make(map[K]V, in.Len())
 	}
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.items.Copy(in)
 }
 
 // Equal returns true if all the keys in the given map exist in this map, and the values are the same
 func (m *SafeMap[K, V]) Equal(m2 MapI[K, V]) bool {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.items.Equal(m2)
 }
 
 // MarshalBinary implements the BinaryMarshaler interface to convert the map to a byte stream.
 func (m *SafeMap[K, V]) MarshalBinary() ([]byte, error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.items.MarshalBinary()
 }
 
 // UnmarshalBinary implements the BinaryUnmarshaler interface to convert a byte stream to a
 // SafeMap.
 func (m *SafeMap[K, V]) UnmarshalBinary(data []byte) (err error) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.items.UnmarshalBinary(data)
 }
 
 // MarshalJSON implements the json.Marshaler interface to convert the map into a JSON object.
 func (m *SafeMap[K, V]) MarshalJSON() (out []byte, err error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.items.MarshalJSON()
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface to convert a json object to a SafeMap.
 // The JSON must start with an object.
 func (m *SafeMap[K, V]) UnmarshalJSON(in []byte) (err error) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	return m.items.UnmarshalJSON(in)
 }
 
 // String outputs the map as a string.
 func (m *SafeMap[K, V]) String() string {
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.items.String()
 }
 
@@ -213,8 +213,8 @@ func (m *SafeMap[K, V]) KeysIter() iter.Seq[K] {
 		if m.items == nil {
 			return
 		}
-		m.RLock()
-		defer m.RUnlock()
+		m.mu.RLock()
+		defer m.mu.RUnlock()
 		for k := range m.items {
 			if !yield(k) {
 				break
@@ -231,8 +231,8 @@ func (m *SafeMap[K, V]) ValuesIter() iter.Seq[V] {
 		if m.items == nil {
 			return
 		}
-		m.RLock()
-		defer m.RUnlock()
+		m.mu.RLock()
+		defer m.mu.RUnlock()
 		for _, v := range m.items {
 			if !yield(v) {
 				break
@@ -244,8 +244,8 @@ func (m *SafeMap[K, V]) ValuesIter() iter.Seq[V] {
 // Insert adds the values from seq to the map.
 // Duplicate keys are overridden.
 func (m *SafeMap[K, V]) Insert(seq iter.Seq2[K, V]) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	for k, v := range seq {
 		m.items[k] = v
 	}
@@ -266,15 +266,15 @@ func CollectSafeMap[K comparable, V any](seq iter.Seq2[K, V]) *SafeMap[K, V] {
 // the new keys and values are set using ordinary assignment.
 func (m *SafeMap[K, V]) Clone() *SafeMap[K, V] {
 	m1 := new(SafeMap[K, V])
-	m.RLock()
-	defer m.RUnlock()
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	m1.items = m.items.Clone()
 	return m1
 }
 
 // DeleteFunc deletes any key/value pairs for which del returns true.
 func (m *SafeMap[K, V]) DeleteFunc(del func(K, V) bool) {
-	m.Lock()
-	defer m.Unlock()
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.items.DeleteFunc(del)
 }

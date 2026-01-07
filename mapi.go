@@ -13,7 +13,7 @@ type MapI[K comparable, V any] interface {
 	Has(k K) bool
 	Keys() []K
 	Values() []V
-	Merge(MapI[K, V])
+	Copy(MapI[K, V])
 	Equal(MapI[K, V]) bool
 	Delete(k K) V
 	All() iter.Seq2[K, V]
@@ -22,6 +22,9 @@ type MapI[K comparable, V any] interface {
 	Insert(seq iter.Seq2[K, V])
 	DeleteFunc(del func(K, V) bool)
 	String() string
+
+	// Deprecated: Call Copy instead
+	Merge(MapI[K, V])
 }
 
 // Setter sets a value in a map.
